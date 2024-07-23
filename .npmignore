@@ -1,0 +1,6 @@
+node_modules
+package-lock.json
+*.tgz
+.gitignore
+.prettierrc.json
+exemple/node_modules
