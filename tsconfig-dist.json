@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "ES2017",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "importHelpers": true,
+        "jsx": "react",
+        "esModuleInterop": true,
+        "sourceMap": true,
+        "allowSyntheticDefaultImports": true,
+        "strict": true,
+        "outDir": "./dist",
+        "rootDir": "./src/lib",
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./dist/types",
+    },
+    "include": [
+        "./src/lib/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "public",
+        "build"
+    ]
+}

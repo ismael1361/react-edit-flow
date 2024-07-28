@@ -1,0 +1,17 @@
+.flow-ui-node__add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.05) !important;
+    cursor: pointer;
+    transition: background-color 0.3s;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0) !important;
+    }
+
+    .flow-ui-node__add-icon {
+        font-size: 20px;
+    }
+}

@@ -3,4 +3,7 @@ package-lock.json
 *.tgz
 .gitignore
 .prettierrc.json
-exemple
+build
+src
+rollup.config.mjs
+tsconfig.json

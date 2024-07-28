@@ -1,0 +1,83 @@
+.flow-ui-line__fill {
+    flex: 1;
+}
+
+.flow-ui-line__cover {
+    position: absolute;
+}
+
+.flow-ui-vertical {
+    .flow-ui-line__cover {
+
+        &.cover-condition-start,
+        &.cover-loop-start {
+            top: 0;
+        }
+
+        &.cover-condition-end,
+        &.cover-loop-end {
+            bottom: 0;
+        }
+
+        &.cover-condition-start,
+        &.cover-condition-end {
+
+            &.cover-first,
+            &.cover-middle {
+                right: 0;
+            }
+
+            &.cover-last {
+                left: 0;
+            }
+        }
+
+        &.cover-loop-start,
+        &.cover-loop-end {
+            left: 0;
+        }
+    }
+}
+
+.flow-ui-horizontal {
+    .flow-ui-line__cover {
+
+        &.cover-condition-start,
+        &.cover-loop-start {
+            left: 0;
+        }
+
+        &.cover-condition-end,
+        &.cover-loop-end {
+            right: 0;
+        }
+
+        &.cover-condition-start,
+        &.cover-condition-end {
+
+            &.cover-first,
+            &.cover-middle {
+                bottom: 0;
+            }
+
+            &.cover-last {
+                top: 0;
+            }
+        }
+
+        &.cover-loop-start,
+        &.cover-loop-end {
+            bottom: 0;
+        }
+    }
+}
+
+.flow-ui-branch-node-dragging>.flow-ui-branch-node__content {
+    >.flow-ui-branch-node__conditions>.flow-ui-condition-node>.flow-ui-line__cover {
+        display: none;
+    }
+
+    >.flow-ui-branch-node__sorting__dashed {
+        display: block;
+    }
+}

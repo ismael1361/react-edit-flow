@@ -1,0 +1,382 @@
+.flow-ui-node_item {
+    min-width: 200px;
+    min-height: 30px;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 5px;
+    transition: all 0.3s;
+    user-select: none;
+
+    >* {
+        border: solid 0px rgba(0, 0, 0, 0.2);
+        border-left-width: 2px;
+        border-right-width: 2px;
+        border-bottom-width: 2px;
+        transition: all 0.3s;
+        user-select: none;
+
+        &:first-child {
+            border-top-width: 2px;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+
+        &:last-child {
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+    }
+
+    >.flow-ui-node__header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0;
+        width: 100%;
+        background-color: #f5f5f5;
+        color: #000;
+
+        >.flow-ui-node__header__background {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            bottom: -2px;
+            left: -2px;
+            opacity: .1;
+        }
+
+
+        >.flow-ui-node__header__content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+
+            >.flow-ui-node__header__icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 35px;
+                height: 35px;
+                margin: 2.5px 15px 2.5px 2.5px;
+                border-radius: 5px;
+
+                svg {
+                    fill: #fff;
+                    color: #fff;
+                    opacity: .9;
+                    width: 20px;
+                    height: 20px;
+                }
+            }
+
+            >.flow-ui-node__header__title {
+                flex: 1;
+                font-size: 16px;
+                color: currentColor;
+                text-wrap: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 18px;
+                opacity: .7;
+                margin-right: 15px;
+            }
+        }
+
+        >.flow-ui-node__header__action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            margin: 0px 5px;
+
+            &:hover {
+                opacity: .7;
+            }
+
+            svg {
+                fill: currentColor;
+                color: currentColor;
+                opacity: .8;
+                width: 20px;
+                height: 20px;
+            }
+        }
+    }
+
+    >.flow-ui-node__content {
+        flex: 1;
+        display: flex;
+        width: 100%;
+        min-height: 40px;
+        background-color: #f5f5f5;
+        padding: 15px;
+    }
+}
+
+.flow-ui-node,
+.flow-ui-node__content-wrap,
+.flow-ui-node__content,
+.flow-ui-branch-node__content,
+.flow-ui-loop-node__content {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.flow-ui-loop-node__content {
+    z-index: 5;
+}
+
+.flow-ui-branch-node {
+    &__add-button {
+        position: absolute;
+        cursor: pointer;
+        z-index: 1;
+
+        .flow-ui-drop-button {
+            width: 20px;
+            height: 20px;
+        }
+    }
+
+    .branch-add-disabled {
+        position: absolute;
+    }
+
+    &__conditions {
+        display: flex;
+    }
+
+    &__dashed,
+    &__sorting__dashed {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+
+    &__sorting__dashed {
+        display: none;
+    }
+}
+
+.flow-ui-vertical {
+    margin: 0 auto;
+    flex-direction: column;
+
+    .flow-ui-node,
+    .flow-ui-node__content-wrap,
+    .flow-ui-node__content,
+    .flow-ui-branch-node__content,
+    .flow-ui-loop-node__content {
+        flex-direction: column;
+    }
+
+    .flow-ui-start-node {
+        padding-top: 16px;
+    }
+
+    .flow-ui-end-node {
+        padding-bottom: 16px;
+    }
+
+    .flow-ui-branch-node {
+        .flow-ui-branch-node__content {
+            margin-top: 10px;
+        }
+
+        &__add-button {
+            top: -10px;
+        }
+
+        &__conditions {
+            flex-direction: row;
+        }
+    }
+}
+
+.flow-ui-horizontal {
+    margin: auto 0;
+    flex-direction: row;
+
+    .flow-ui-node,
+    .flow-ui-node__content-wrap,
+    .flow-ui-node__content,
+    .flow-ui-branch-node__content {
+        flex-direction: row;
+    }
+
+    .flow-ui-start-node {
+        padding-left: 16px;
+    }
+
+    .flow-ui-end-node {
+        padding-right: 16px;
+    }
+
+    .flow-ui-branch-node {
+        .flow-ui-branch-node__content {
+            margin-left: 10px;
+        }
+
+        &__add-button {
+            left: -10px;
+        }
+
+        &__conditions {
+            flex-direction: column;
+        }
+    }
+}
+
+.flow-ui-sortable-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    cursor: move;
+    opacity: 0;
+    position: absolute;
+}
+
+.flow-ui-node_operations_taps {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-y: hidden;
+    overflow-x: auto;
+    gap: 5px;
+
+    >div {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        cursor: pointer;
+        border-radius: 5px;
+        margin: 5px 0;
+        color: #000;
+        border: solid 2px rgba(0, 0, 0, 0);
+        width: 70px;
+        max-width: 70px;
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        &.active {
+            background-color: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        >.flow-ui-node_operations_tap_icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.1);
+
+            svg {
+                fill: #fff;
+                color: #fff;
+                opacity: .9;
+                width: 25px;
+                height: 25px;
+            }
+        }
+
+        >.flow-ui-node_operations_tap_title {
+            font-size: 12px;
+            color: currentColor;
+            text-wrap: pretty;
+            overflow: hidden;
+            font-size: 12px;
+            opacity: .7;
+        }
+    }
+}
+
+.flow-ui-node_operations_list {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: solid 2px rgba(0, 0, 0, 0.1);
+    border-radius: 5px;
+    padding: 0px 5px;
+
+    &:empty {
+        &::before {
+            content: 'No operations';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: block;
+            padding: 10px;
+            text-align: center;
+            color: rgba(0, 0, 0, 0.4);
+            font-style: italic;
+        }
+    }
+
+    >div {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 2px 15px 2px 2px;
+        border: solid 1px rgba(0, 0, 0, 0);
+        cursor: pointer;
+        border-radius: 5px;
+        margin: 5px 0;
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        >.flow-ui-node_operation_title {
+            font-size: 16px;
+            color: #000;
+            text-wrap: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 18px;
+            opacity: .7;
+        }
+
+        >.flow-ui-node_operation_icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            margin-right: 15px;
+            border-radius: 5px;
+
+            svg {
+                fill: #fff;
+                color: #fff;
+                opacity: .9;
+                width: 25px;
+                height: 25px;
+            }
+        }
+    }
+}
