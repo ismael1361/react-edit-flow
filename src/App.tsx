@@ -7,10 +7,29 @@ function App() {
 	return (
 		<div className="App">
 			<ReactFlowUI
+				variables={[
+					{
+						type: "string",
+						name: "nome",
+					},
+					{
+						type: "number",
+						name: "age",
+						default: 0,
+					},
+					{
+						type: "string",
+						name: "email",
+					},
+					{
+						type: "boolean",
+						name: "valido",
+						default: true,
+					},
+				]}
 				registerNodes={{
 					CustomNode: {
 						title: "Custom Node",
-						icon: mdiStarFourPointsCircle,
 						type: "action",
 						declarations: [
 							{

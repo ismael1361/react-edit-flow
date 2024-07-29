@@ -38,6 +38,10 @@
         background-color: #f5f5f5;
         color: #000;
 
+        >*:last-child {
+            margin-right: 5px;
+        }
+
         >.flow-ui-node__header__background {
             position: absolute;
             top: -2px;
@@ -46,7 +50,6 @@
             left: -2px;
             opacity: .1;
         }
-
 
         >.flow-ui-node__header__content {
             flex: 1;
@@ -89,10 +92,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 35px;
+            width: 24px;
             height: 35px;
             cursor: pointer;
-            margin: 0px 5px;
 
             &:hover {
                 opacity: .7;
@@ -168,6 +170,7 @@
 
 .flow-ui-vertical {
     margin: 0 auto;
+    padding: 0px 40px;
     flex-direction: column;
 
     .flow-ui-node,
@@ -179,11 +182,11 @@
     }
 
     .flow-ui-start-node {
-        padding-top: 16px;
+        padding-top: 40px;
     }
 
     .flow-ui-end-node {
-        padding-bottom: 16px;
+        padding-bottom: 40px;
     }
 
     .flow-ui-branch-node {
@@ -203,21 +206,21 @@
 
 .flow-ui-horizontal {
     margin: auto 0;
+    padding: 40px 0px;
     flex-direction: row;
 
     .flow-ui-node,
     .flow-ui-node__content-wrap,
-    .flow-ui-node__content,
     .flow-ui-branch-node__content {
         flex-direction: row;
     }
 
     .flow-ui-start-node {
-        padding-left: 16px;
+        padding-left: 40px;
     }
 
     .flow-ui-end-node {
-        padding-right: 16px;
+        padding-right: 40px;
     }
 
     .flow-ui-branch-node {

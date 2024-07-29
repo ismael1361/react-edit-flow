@@ -7,6 +7,7 @@ import { BodyNode, OperationsNode } from "../Nodes";
 import "./styles.scss";
 import { BuilderContext } from "../../Contexts";
 import { INode } from "../../Types";
+import zIndex from "@mui/material/styles/zIndex";
 
 interface IProps {
 	onAdd: (node: INode) => void;
@@ -14,7 +15,7 @@ interface IProps {
 
 const AddButton: React.FC<Partial<IProps>> = ({ onAdd }) => {
 	const [showOperations, setShowOperations] = React.useState<boolean>(false);
-	const { lineColor } = useContext(BuilderContext);
+	const { lineColor, layout, spaceX, spaceY } = useContext(BuilderContext);
 
 	return (
 		<>
@@ -24,15 +25,27 @@ const AddButton: React.FC<Partial<IProps>> = ({ onAdd }) => {
 					onClick={() => {
 						setShowOperations(true);
 					}}
-					style={{ minWidth: "100px" }}
+					style={{
+						minWidth: "100px",
+						minHeight: "0px",
+						marginTop: layout === "vertical" ? `${spaceY * -1}px` : undefined,
+						marginBottom: layout === "vertical" ? `${spaceY * -1}px` : undefined,
+						marginLeft: layout === "horizontal" ? `${spaceX * -1}px` : undefined,
+						marginRight: layout === "horizontal" ? `${spaceX * -1}px` : undefined,
+						backgroundColor: "transparent",
+						zIndex: 1,
+					}}
 				>
 					<BodyNode
 						className="low-ui-node__content flow-ui-node__add"
-						style={{
-							borderColor: lineColor,
-							borderStyle: "dashed",
-							padding: "0px",
-						}}
+						style={
+							{
+								"--lineColor": lineColor,
+								"borderColor": lineColor,
+								"borderStyle": "dashed",
+								"padding": "0px",
+							} as React.CSSProperties
+						}
 					>
 						<Icon
 							className="flow-ui-node__add__icon"

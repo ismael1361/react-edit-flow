@@ -10,9 +10,14 @@ export interface INode {
 	id: string;
 	type: INodeType;
 	name: string;
-	data?: any;
+	data?: {
+		declarations: INodeDeclaration[];
+		variables: IVariableDefinition[];
+		[key: string]: any;
+	};
 	children?: INode[];
 	next?: string[];
+	isExpanded?: boolean;
 	[key: string]: any;
 }
 
@@ -25,10 +30,20 @@ export interface IRegisterNode {
 	declarations?: INodeDeclaration[];
 	onCall?: (node: INodeDeclaration[]) => void;
 	keys?: string[];
+	variables?: IVariableDefinition[];
 }
 
 export interface INodeProps extends INode {
 	onAdd?: (node: INode) => void;
 	onChange?: (node: INode) => void;
 	onRemove?: (id: string) => void;
+}
+
+export interface IVariableDefinition {
+	name: string;
+	type: ("string" | "number" | "boolean" | "any" | "unknown" | "Function" | "Object" | "Array" | "Date") & string;
+	default?: string | number | boolean;
+	isConstant?: boolean;
+	color?: string;
+	byId?: string;
 }

@@ -6,8 +6,8 @@ export interface IConditionProps extends INodeDeclarationBase {
 	operation: "egual" | "different" | "greater" | "less" | "greaterOrEgual" | "lessOrEgual";
 }
 
-const Condition: React.FC<IProps<IConditionProps>> = ({ type }) => {
+const ConditionDeclaration: React.FC<IProps<IConditionProps>> = ({ type }) => {
 	return <></>;
 };
 
-export default Condition;
+export default ConditionDeclaration;

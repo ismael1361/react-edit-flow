@@ -3,12 +3,17 @@
     align-items: center;
     justify-content: center;
     height: 30px;
-    background-color: rgba(0, 0, 0, 0.05) !important;
+    background-color: rgba(0, 0, 0, 0.0) !important;
     cursor: pointer;
     transition: background-color 0.3s;
+    border-color: transparent !important;
+    border-top-width: 0px !important;
+    border-bottom-width: 0px !important;
+    border-radius: 0px !important;
 
     &:hover {
-        background-color: rgba(0, 0, 0, 0) !important;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+        border-color: var(--lineColor) !important;
     }
 
     .flow-ui-node__add-icon {

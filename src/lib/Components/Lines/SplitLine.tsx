@@ -15,7 +15,9 @@ const SplitLine: React.FC<IProps> = ({ className = "", style }) => {
 			style={{
 				backgroundColor: lineColor,
 				width: `${layout === "vertical" ? 2 : spaceX}px`,
+				minWidth: `${layout === "vertical" ? 2 : spaceX}px`,
 				height: `${layout === "vertical" ? spaceY : 2}px`,
+				minHeight: `${layout === "vertical" ? spaceY : 2}px`,
 				...style,
 			}}
 		/>

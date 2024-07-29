@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode } from "react";
-import type { INode, IRegisterNode } from "../Types";
+import type { INode, IRegisterNode, IVariableDefinition } from "../Types";
 import { mdiCodeBlockBraces, mdiDatabaseOutline, mdiFunction, mdiPuzzle, mdiSelectAll, mdiVariable } from "@mdi/js";
 
 export type INodeCategory = "all" | "variable" | "control" | "data" | "function" | "other";
@@ -34,7 +34,7 @@ const categories: {
 		title: "Function",
 	},
 	other: {
-		color: "#263238",
+		color: "#00796b",
 		icon: mdiPuzzle,
 		title: "Other",
 	},
@@ -62,6 +62,7 @@ export interface IFlowUiContext {
 	registerNodes: {
 		[k: string]: IRegisterNode;
 	};
+	variables: IVariableDefinition[];
 }
 
 const defaultBuilderContext: IFlowUiContext = {
@@ -74,6 +75,7 @@ const defaultBuilderContext: IFlowUiContext = {
 	},
 	categories,
 	registerNodes: {},
+	variables: [],
 };
 
 export const BuilderContext = createContext<IFlowUiContext>(defaultBuilderContext);
@@ -89,16 +91,18 @@ export const BuilderProvider: React.FC<ProviderProps<IFlowUiContext>> = ({ child
 };
 
 export interface INodeContext extends INode {
-	addAction: (node: INode) => void;
+	getVariables: () => IVariableDefinition[];
+	defineVariable: (...variable: IVariableDefinition[]) => void;
 }
 
 const defaultNodeContext: INodeContext = {
 	id: "",
 	type: "action",
 	name: "",
-	data: {},
 	children: [],
-	addAction: () => {},
+	variables: [],
+	getVariables: () => [],
+	defineVariable: () => {},
 };
 
 export const NodeContext = React.createContext<INodeContext>(defaultNodeContext);

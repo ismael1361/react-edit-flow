@@ -6,7 +6,7 @@ import { mdiArrowExpandDown, mdiClose, mdiMagnify, mdiPuzzle } from "@mdi/js";
 import BodyNode from "./BodyNode";
 import { TextField } from "@mui/material";
 import { INode } from "../../Types";
-import { uuidv4 } from "../../Utils";
+import { cloneValue, uuidv4 } from "../../Utils";
 
 interface IProps {
 	onClone: () => void;
@@ -39,7 +39,7 @@ const OperationsNode: React.FC<IProps> = ({ onClone, onAdd }) => {
 			<div
 				className="flow-ui-node_item flow-ui-node__content win2dp radius5"
 				onClick={handleNodeClick}
-				style={{ minWidth: "600px" }}
+				style={{ minWidth: "400px" }}
 			>
 				<HeaderNode
 					icon={
@@ -121,7 +121,7 @@ const OperationsNode: React.FC<IProps> = ({ onClone, onAdd }) => {
 						})}
 					</div>
 					<div className="flow-ui-node_operations_list">
-						{Object.entries(registerNodes).map(([nodeId, { icon, color, category: c = "other", title = "", keys = [], type }], index) => {
+						{Object.entries(registerNodes).map(([nodeId, { icon, color, category: c = "other", title = "", keys = [], type, variables, declarations = [] }], index) => {
 							const category: string[] = Array.isArray(c) ? c : [c];
 							const [selectId, selectItem] = Object.entries(categories)[typeList] ?? ["", {}];
 							const validSearch: boolean =
@@ -133,18 +133,31 @@ const OperationsNode: React.FC<IProps> = ({ onClone, onAdd }) => {
 								return null;
 							}
 
-							if (Array.isArray(category) && category[0] in categories && !color) {
-								color = (categories as any)[category[0]]?.color ?? color;
-							}
+							const nodeIdInfo = uuidv4();
 
 							const nodeInfo: INode = {
-								id: uuidv4(),
+								id: nodeIdInfo,
 								name: nodeId,
 								type,
-								data: {},
+								data: {
+									declarations: cloneValue(declarations),
+									variables: (variables ?? []).map((variable) => {
+										return {
+											...variable,
+											color: variable.color ?? color,
+											byId: nodeIdInfo,
+										};
+									}),
+								},
 								children: [],
 								next: [],
+								isExpanded: true,
 							};
+
+							if (Array.isArray(category) && category[0] in categories) {
+								color = !color ? (categories as any)[category[0]]?.color ?? color : color;
+								icon = !icon ? (categories as any)[category[0]]?.icon ?? icon : icon;
+							}
 
 							return (
 								<div

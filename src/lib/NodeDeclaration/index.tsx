@@ -1,8 +1,6 @@
-import { FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
-import React, { forwardRef } from "react";
-import { useId } from "../Hooks";
-import Input, { IInputProps } from "./Input";
-import Condition, { IConditionProps } from "./Condition";
+import React, { useEffect, useRef, useState } from "react";
+import InputDeclaration, { IInputProps } from "./InputDeclaration";
+import ConditionDeclaration, { IConditionProps } from "./ConditionDeclaration";
 
 export type IProps<T extends Object> = T & { onChange?: (value: any) => void };
 
@@ -12,13 +10,26 @@ export interface INodeDeclarationBase {
 
 const RenderNodeDeclarations: React.FC<{
 	declarations: INodeDeclaration[];
-}> = ({ declarations }) => {
+	onChange?: (declarations: INodeDeclaration[]) => void;
+}> = ({ declarations, onChange }) => {
+	const declarationsRef = useRef<INodeDeclaration[]>(declarations);
+
 	return (
 		<>
-			{declarations.map((declaration, index) => {
+			{declarationsRef.current.map((declaration, index) => {
 				return (
 					<React.Fragment key={index}>
-						{declaration.type === "condition" ? <Condition {...(declaration as IConditionProps)} /> : declaration.type === "input" ? <Input {...(declaration as IInputProps)} /> : null}
+						{declaration.type === "condition" ? (
+							<ConditionDeclaration {...(declaration as IConditionProps)} />
+						) : declaration.type === "input" ? (
+							<InputDeclaration
+								{...(declaration as IInputProps)}
+								onChange={(declaration) => {
+									declarationsRef.current[index] = declaration;
+									onChange?.(declarationsRef.current);
+								}}
+							/>
+						) : null}
 					</React.Fragment>
 				);
 			})}

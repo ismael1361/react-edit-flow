@@ -24,7 +24,7 @@ const StartNode: React.FC<Partial<IProps>> = ({ onAdd }) => {
 			<div
 				className="flow-ui-node_item flow-ui-node__content win2dp radius5"
 				onClick={handleNodeClick}
-				style={{ minWidth: "0px" }}
+				style={{ minWidth: "110px" }}
 			>
 				<HeaderNode
 					icon={

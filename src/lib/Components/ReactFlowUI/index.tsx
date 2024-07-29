@@ -1,11 +1,13 @@
-import React from "react";
-import { FileAnalyzer } from "../../Utils";
+import React, { useRef } from "react";
+import { FileAnalyzer, uuidv4 } from "../../Utils";
 import { ActionNode, EndNode, OperationsNode, StartNode } from "../Nodes";
-import { BuilderContext, BuilderProvider, IFlowUiContext, NodeProvider } from "../../Contexts";
-import { INode, IRegisterNode } from "../../Types";
+import { BuilderContext, BuilderProvider, IFlowUiContext, NodeContext, NodeProvider } from "../../Contexts";
+import { INode, IRegisterNode, IVariableDefinition } from "../../Types";
 import ListNodes from "../../ListNodes";
 
 import "./styles.scss";
+import { SplitLine } from "../Lines";
+import AddButton from "../AddButton";
 
 interface IProps extends Partial<Omit<IFlowUiContext, "addAction" | "categories">> {
 	className?: string;
@@ -14,45 +16,95 @@ interface IProps extends Partial<Omit<IFlowUiContext, "addAction" | "categories"
 	onChange?: (nodes: INode[]) => void;
 }
 
-const Build: React.FC = () => {
-	const { layout = "vertical" } = React.useContext(BuilderContext) ?? {};
-	const [nodes, setNodes] = React.useState<INode[]>([]);
+const useUpdate = () => {
+	const [_, update] = React.useState<number>(0);
+	return () => update((p) => p + 1);
+};
 
-	const onAdd = (node: INode) => {
-		setNodes([...nodes, node]);
+const Build: React.FC<{
+	variables?: IVariableDefinition[];
+}> = ({ variables: v = [] }) => {
+	const update = useUpdate();
+	const context = React.useContext(BuilderContext) ?? {};
+	const { layout = "vertical" } = context;
+	const beforeNodes = React.useContext(NodeContext);
+	const nodes = useRef<INode[]>([]);
+	const [variables, setVariables] = React.useState<IVariableDefinition[]>([]);
+
+	const onAdd = (index: number) => (node: INode) => {
+		const start = nodes.current.slice(0, index);
+		const end = nodes.current.slice(index);
+		nodes.current = [...start, node, ...end];
+		update();
 	};
 
 	const onRemove = (id: string) => {
-		setNodes(nodes.filter((node) => node.id !== id));
+		const index = nodes.current.findIndex((node) => node.id === id);
+		nodes.current.splice(index, 1);
+		update();
 	};
 
 	return (
-		<div className="flow-ui-content">
-			<div
-				className={`flow-ui flow-ui-${layout}`}
-				style={{ zoom: `${100}%` }}
-			>
-				<StartNode onAdd={onAdd} />
-				{nodes.map((node, index) => {
-					return (
-						<React.Fragment key={index}>
-							{node.type === "action" ? (
-								<ActionNode
-									{...node}
-									onAdd={onAdd}
-									onRemove={onRemove}
-								/>
-							) : null}
-						</React.Fragment>
-					);
-				})}
-				<EndNode />
+		<NodeProvider
+			value={{
+				type: "action",
+				id: uuidv4(),
+				name: "main",
+				children: [
+					{
+						type: "start",
+						id: uuidv4(),
+						name: "start",
+						children: [],
+						variables: [],
+					},
+					...nodes.current,
+					{
+						type: "end",
+						id: uuidv4(),
+						name: "end",
+						children: [],
+						variables: [],
+					},
+				],
+				defineVariable: () => {},
+				getVariables: () => {
+					return v.concat(beforeNodes.getVariables(), variables);
+				},
+			}}
+		>
+			<div className="flow-ui-content">
+				<div
+					className={`flow-ui flow-ui-${layout}`}
+					style={{ zoom: `${100}%` }}
+				>
+					<StartNode onAdd={onAdd(0)} />
+					{nodes.current.map((node, index) => {
+						return (
+							<React.Fragment key={node.id}>
+								{node.type === "action" ? (
+									<ActionNode
+										key={node.id}
+										{...node}
+										onRemove={onRemove}
+										onChange={(node) => {
+											nodes.current[index] = node;
+										}}
+									/>
+								) : null}
+								<SplitLine />
+								<AddButton onAdd={onAdd(index + 1)} />
+							</React.Fragment>
+						);
+					})}
+					<EndNode />
+				</div>
 			</div>
-		</div>
+		</NodeProvider>
 	);
 };
 
-const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNodes = {}, ...options }) => {
+const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNodes = {}, variables, ...options }) => {
 	(window as any).FileAnalyzer = FileAnalyzer;
 
 	return (
@@ -78,7 +130,7 @@ const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNod
 				},
 			}}
 		>
-			<Build />
+			<Build variables={variables} />
 		</BuilderProvider>
 	);
 };
