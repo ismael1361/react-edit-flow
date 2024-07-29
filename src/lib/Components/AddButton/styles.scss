@@ -7,9 +7,9 @@
     cursor: pointer;
     transition: background-color 0.3s;
     border-color: transparent !important;
-    border-top-width: 0px !important;
-    border-bottom-width: 0px !important;
     border-radius: 0px !important;
+    border-style: dashed;
+    padding: 0px !important;
 
     &:hover {
         background-color: rgba(0, 0, 0, 0.05) !important;
@@ -20,3 +20,25 @@
         font-size: 20px;
     }
 }
+
+// .flow-ui-vertical {
+//     .flow-ui-node__add {
+//         border-top-width: 0px !important;
+//         border-bottom-width: 0px !important;
+
+//         &__end {
+//             border-bottom-width: 2px !important;
+//         }
+//     }
+// }
+
+// .flow-ui-horizontal {
+//     .flow-ui-node__add {
+//         border-left-width: 0px !important;
+//         border-right-width: 0px !important;
+
+//         &__end {
+//             border-right-width: 2px !important;
+//         }
+//     }
+// }

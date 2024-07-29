@@ -8,7 +8,7 @@ import { useId } from "../../Hooks";
 const EndNode: React.FC = () => {
 	const id = useId();
 	const { nodeStyle } = useContext(BuilderContext);
-	const { color = "#f44336", icon, title = "End" } = nodeStyle.end ?? {};
+	const { color = "#9c27b0", icon, title = "End" } = nodeStyle.end ?? {};
 
 	const handleNodeClick = () => {};
 

@@ -4,7 +4,7 @@ import type { INodeCategory } from "./Contexts";
 
 export { INodeDeclaration };
 
-export type INodeType = "start" | "end" | "condition" | "action" | "branch" | "loop";
+export type INodeType = "start" | "end" | "condition" | "action";
 
 export interface INode {
 	id: string;
@@ -31,12 +31,15 @@ export interface IRegisterNode {
 	onCall?: (node: INodeDeclaration[]) => void;
 	keys?: string[];
 	variables?: IVariableDefinition[];
+	operable?: boolean;
 }
 
 export interface INodeProps extends INode {
 	onAdd?: (node: INode) => void;
 	onChange?: (node: INode) => void;
 	onRemove?: (id: string) => void;
+	onExpanded?: (expanded: boolean) => void;
+	isContent?: boolean;
 }
 
 export interface IVariableDefinition {

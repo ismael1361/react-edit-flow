@@ -7,6 +7,7 @@ function App() {
 	return (
 		<div className="App">
 			<ReactFlowUI
+				layout="vertical"
 				variables={[
 					{
 						type: "string",

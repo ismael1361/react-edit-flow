@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { SplitLine } from "../Lines";
+import { FillLine, SplitLine } from "../Lines";
 import Icon from "@mdi/react";
 import { mdiPlusCircle } from "@mdi/js";
 import { BodyNode, OperationsNode } from "../Nodes";
@@ -11,11 +11,17 @@ import zIndex from "@mui/material/styles/zIndex";
 
 interface IProps {
 	onAdd: (node: INode) => void;
+	isEnd?: boolean;
+	fillLine?: boolean;
 }
 
-const AddButton: React.FC<Partial<IProps>> = ({ onAdd }) => {
+const AddButton: React.FC<Partial<IProps>> = ({ onAdd, isEnd = false, fillLine = false }) => {
 	const [showOperations, setShowOperations] = React.useState<boolean>(false);
-	const { lineColor, layout, spaceX, spaceY } = useContext(BuilderContext);
+	let { lineColor, layout, spaceX, spaceY } = useContext(BuilderContext);
+
+	const size = 20;
+	const width = layout === "vertical" ? 100 : spaceX * 2 + size;
+	const height = layout === "horizontal" ? 40 : spaceY * 2 + size;
 
 	return (
 		<>
@@ -26,24 +32,23 @@ const AddButton: React.FC<Partial<IProps>> = ({ onAdd }) => {
 						setShowOperations(true);
 					}}
 					style={{
-						minWidth: "100px",
-						minHeight: "0px",
+						minWidth: `${width}px`,
+						minHeight: `${height}px`,
 						marginTop: layout === "vertical" ? `${spaceY * -1}px` : undefined,
 						marginBottom: layout === "vertical" ? `${spaceY * -1}px` : undefined,
 						marginLeft: layout === "horizontal" ? `${spaceX * -1}px` : undefined,
 						marginRight: layout === "horizontal" ? `${spaceX * -1}px` : undefined,
 						backgroundColor: "transparent",
 						zIndex: 1,
+						borderRadius: 0,
 					}}
 				>
 					<BodyNode
-						className="low-ui-node__content flow-ui-node__add"
+						className={`low-ui-node__content flow-ui-node__add ${isEnd ? "flow-ui-node__add__end" : ""}`}
 						style={
 							{
 								"--lineColor": lineColor,
 								"borderColor": lineColor,
-								"borderStyle": "dashed",
-								"padding": "0px",
 							} as React.CSSProperties
 						}
 					>
@@ -66,7 +71,7 @@ const AddButton: React.FC<Partial<IProps>> = ({ onAdd }) => {
 					}}
 				/>
 			)}
-			<SplitLine />
+			{fillLine ? <FillLine /> : <SplitLine />}
 		</>
 	);
 };

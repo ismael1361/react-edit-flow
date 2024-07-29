@@ -4,7 +4,7 @@ import { BuilderContext } from "../../Contexts";
 interface IProps {}
 
 const FillLine: React.FC<IProps> = ({}) => {
-	const { layout, lineColor } = useContext(BuilderContext);
+	const { layout, lineColor, spaceX, spaceY } = useContext(BuilderContext);
 
 	return (
 		<div
@@ -12,7 +12,9 @@ const FillLine: React.FC<IProps> = ({}) => {
 			style={{
 				backgroundColor: lineColor,
 				width: layout === "vertical" ? "2px" : "100%",
+				minWidth: layout === "vertical" ? "auto" : `${spaceX}px`,
 				height: layout === "vertical" ? "100%" : "2px",
+				minHeight: layout === "vertical" ? `${spaceY}px` : "auto",
 			}}
 		/>
 	);

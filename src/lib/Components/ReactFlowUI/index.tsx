@@ -1,13 +1,14 @@
 import React, { useRef } from "react";
 import { FileAnalyzer, uuidv4 } from "../../Utils";
-import { ActionNode, EndNode, OperationsNode, StartNode } from "../Nodes";
+import { ActionNode, ConditionNode, EndNode, OperationsNode, StartNode } from "../Nodes";
 import { BuilderContext, BuilderProvider, IFlowUiContext, NodeContext, NodeProvider } from "../../Contexts";
-import { INode, IRegisterNode, IVariableDefinition } from "../../Types";
+import { INode, INodeProps, IRegisterNode, IVariableDefinition } from "../../Types";
 import ListNodes from "../../ListNodes";
 
 import "./styles.scss";
 import { SplitLine } from "../Lines";
 import AddButton from "../AddButton";
+import { useUpdate } from "../../Hooks";
 
 interface IProps extends Partial<Omit<IFlowUiContext, "addAction" | "categories">> {
 	className?: string;
@@ -16,9 +17,32 @@ interface IProps extends Partial<Omit<IFlowUiContext, "addAction" | "categories"
 	onChange?: (nodes: INode[]) => void;
 }
 
-const useUpdate = () => {
-	const [_, update] = React.useState<number>(0);
-	return () => update((p) => p + 1);
+export const RenderNode: React.FC<INodeProps & { isEnd?: boolean }> = ({ onRemove, onChange, onAdd, isEnd = false, ...node }) => {
+	return (
+		<React.Fragment key={node.id}>
+			{node.type === "action" ? (
+				<ActionNode
+					key={node.id}
+					{...node}
+					onRemove={onRemove}
+					onChange={onChange}
+				/>
+			) : node.type === "condition" ? (
+				<ConditionNode
+					key={node.id}
+					{...node}
+					onRemove={onRemove}
+					onChange={onChange}
+				/>
+			) : null}
+			<SplitLine />
+			<AddButton
+				onAdd={onAdd}
+				isEnd={isEnd}
+				fillLine={isEnd}
+			/>
+		</React.Fragment>
+	);
 };
 
 const Build: React.FC<{
@@ -81,20 +105,15 @@ const Build: React.FC<{
 					<StartNode onAdd={onAdd(0)} />
 					{nodes.current.map((node, index) => {
 						return (
-							<React.Fragment key={node.id}>
-								{node.type === "action" ? (
-									<ActionNode
-										key={node.id}
-										{...node}
-										onRemove={onRemove}
-										onChange={(node) => {
-											nodes.current[index] = node;
-										}}
-									/>
-								) : null}
-								<SplitLine />
-								<AddButton onAdd={onAdd(index + 1)} />
-							</React.Fragment>
+							<RenderNode
+								key={index}
+								{...node}
+								onRemove={onRemove}
+								onChange={(node) => {
+									nodes.current[index] = node;
+								}}
+								onAdd={onAdd(index + 1)}
+							/>
 						);
 					})}
 					<EndNode />

@@ -152,6 +152,9 @@
 
     &__conditions {
         display: flex;
+        border: solid 2px rgba(0, 0, 0, 0.2);
+        border-radius: 5px;
+        padding-top: 15px;
     }
 
     &__dashed,
@@ -200,6 +203,13 @@
 
         &__conditions {
             flex-direction: row;
+
+            >.flow-ui-condition-node {
+                >.flow-ui-node {
+                    height: 100%;
+                    padding: 0px 20px;
+                }
+            }
         }
     }
 }
@@ -234,6 +244,13 @@
 
         &__conditions {
             flex-direction: column;
+
+            >.flow-ui-condition-node {
+                >.flow-ui-node {
+                    width: 100%;
+                    padding: 20px 0px;
+                }
+            }
         }
     }
 }

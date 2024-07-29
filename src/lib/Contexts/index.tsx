@@ -4,7 +4,7 @@ import { mdiCodeBlockBraces, mdiDatabaseOutline, mdiFunction, mdiPuzzle, mdiSele
 
 export type INodeCategory = "all" | "variable" | "control" | "data" | "function" | "other";
 
-const categories: {
+export const categoriesList: {
 	[k in INodeCategory]: INodeStyle & { isAll?: boolean };
 } = {
 	all: {
@@ -71,9 +71,9 @@ const defaultBuilderContext: IFlowUiContext = {
 	spaceX: 25,
 	spaceY: 25,
 	nodeStyle: {
-		...categories,
+		...categoriesList,
 	},
-	categories,
+	categories: categoriesList,
 	registerNodes: {},
 	variables: [],
 };

@@ -11,3 +11,8 @@ export const useId = () => {
 	const [id, setId] = useState<string>(uuidv4());
 	return id;
 };
+
+export const useUpdate = () => {
+	const [_, update] = useState<number>(0);
+	return () => update((p) => p + 1);
+};
