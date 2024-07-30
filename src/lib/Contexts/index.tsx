@@ -1,6 +1,8 @@
-import React, { createContext, ReactNode } from "react";
-import type { INode, IRegisterNode, IVariableDefinition } from "../Types";
+import React, { createContext, ReactNode, useRef } from "react";
+import type { INode, IRegisterNode, IVariableDefinition, Required } from "../Types";
 import { mdiCodeBlockBraces, mdiDatabaseOutline, mdiFunction, mdiPuzzle, mdiSelectAll, mdiVariable } from "@mdi/js";
+import { useUpdate } from "../Hooks";
+import { clear } from "console";
 
 export type INodeCategory = "all" | "variable" | "control" | "data" | "function" | "other";
 
@@ -62,7 +64,7 @@ export interface IFlowUiContext {
 	registerNodes: {
 		[k: string]: IRegisterNode;
 	};
-	variables: IVariableDefinition[];
+	variables: Required<IVariableDefinition, "name">[];
 }
 
 const defaultBuilderContext: IFlowUiContext = {
@@ -91,8 +93,8 @@ export const BuilderProvider: React.FC<ProviderProps<IFlowUiContext>> = ({ child
 };
 
 export interface INodeContext extends INode {
-	getVariables: () => IVariableDefinition[];
-	defineVariable: (...variable: IVariableDefinition[]) => void;
+	getVariables: () => Required<IVariableDefinition, "name">[];
+	defineVariable: (...variable: Required<IVariableDefinition, "name">[]) => void;
 }
 
 const defaultNodeContext: INodeContext = {
@@ -110,4 +112,58 @@ export const NodeContext = React.createContext<INodeContext>(defaultNodeContext)
 export const NodeProvider: React.FC<ProviderProps<INodeContext>> = ({ children, value }) => {
 	const contextValue = { ...defaultNodeContext, ...value };
 	return <NodeContext.Provider value={contextValue}>{children}</NodeContext.Provider>;
+};
+
+export interface INodeLog {
+	type: "error" | "warning" | "info";
+	message: string;
+}
+
+export const NodeLogsContext = React.createContext<{
+	logs: INodeLog[];
+	error: (message: string) => void;
+	warning: (message: string) => void;
+	info: (message: string) => void;
+	clear: () => void;
+}>({
+	logs: [],
+	error: () => {},
+	warning: () => {},
+	info: () => {},
+	clear: () => {},
+});
+
+export const NodeLogsProvider: React.FC<{
+	children: ReactNode;
+}> = ({ children }) => {
+	const update = useUpdate();
+	const logsRef = useRef<INodeLog[]>([]);
+	const time = useRef<NodeJS.Timeout>();
+
+	const byLog =
+		(type: INodeLog["type"]) =>
+		(message: string = "") => {
+			clearTimeout(time.current);
+			logsRef.current.push({ type, message });
+			time.current = setTimeout(() => {
+				update();
+			}, 100);
+		};
+
+	return (
+		<NodeLogsContext.Provider
+			value={{
+				logs: logsRef.current,
+				error: byLog("error"),
+				warning: byLog("warning"),
+				info: byLog("info"),
+				clear: () => {
+					logsRef.current = [];
+					update();
+				},
+			}}
+		>
+			{children}
+		</NodeLogsContext.Provider>
+	);
 };

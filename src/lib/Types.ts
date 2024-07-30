@@ -4,6 +4,9 @@ import type { INodeCategory } from "./Contexts";
 
 export { INodeDeclaration };
 
+export type Optional<T extends Object, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+export type Required<T extends Object, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
+
 export type INodeType = "start" | "end" | "condition" | "action";
 
 export interface INode {
@@ -12,7 +15,7 @@ export interface INode {
 	name: string;
 	data?: {
 		declarations: INodeDeclaration[];
-		variables: IVariableDefinition[];
+		variables: Required<IVariableDefinition, "name">[];
 		[key: string]: any;
 	};
 	children?: INode[];
@@ -30,7 +33,7 @@ export interface IRegisterNode {
 	declarations?: INodeDeclaration[];
 	onCall?: (node: INodeDeclaration[]) => void;
 	keys?: string[];
-	variables?: IVariableDefinition[];
+	variables?: Required<IVariableDefinition, "name">[];
 	operable?: boolean;
 }
 
@@ -44,9 +47,11 @@ export interface INodeProps extends INode {
 
 export interface IVariableDefinition {
 	name: string;
-	type: ("string" | "number" | "boolean" | "any" | "unknown" | "Function" | "Object" | "Array" | "Date") & string;
+	expressionType: ("string" | "number" | "boolean" | "any" | "unknown" | "Function" | "Object" | "Array" | "Date") & string;
 	default?: string | number | boolean;
-	isConstant?: boolean;
-	color?: string;
+	value?: string | number | boolean;
+	isConstant: boolean;
+	definition: "var" | "let" | "const";
+	color: string;
 	byId?: string;
 }

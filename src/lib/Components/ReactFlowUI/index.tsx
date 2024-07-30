@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { FileAnalyzer, uuidv4 } from "../../Utils";
 import { ActionNode, ConditionNode, EndNode, OperationsNode, StartNode } from "../Nodes";
 import { BuilderContext, BuilderProvider, IFlowUiContext, NodeContext, NodeProvider } from "../../Contexts";
-import { INode, INodeProps, IRegisterNode, IVariableDefinition } from "../../Types";
+import { INode, INodeProps, IRegisterNode, IVariableDefinition, Required } from "../../Types";
 import ListNodes from "../../ListNodes";
 
 import "./styles.scss";
@@ -46,14 +46,14 @@ export const RenderNode: React.FC<INodeProps & { isEnd?: boolean }> = ({ onRemov
 };
 
 const Build: React.FC<{
-	variables?: IVariableDefinition[];
+	variables?: Required<IVariableDefinition, "name">[];
 }> = ({ variables: v = [] }) => {
 	const update = useUpdate();
 	const context = React.useContext(BuilderContext) ?? {};
 	const { layout = "vertical" } = context;
 	const beforeNodes = React.useContext(NodeContext);
 	const nodes = useRef<INode[]>([]);
-	const [variables, setVariables] = React.useState<IVariableDefinition[]>([]);
+	const [variables, setVariables] = React.useState<Required<IVariableDefinition, "name">[]>([]);
 
 	const onAdd = (index: number) => (node: INode) => {
 		const start = nodes.current.slice(0, index);

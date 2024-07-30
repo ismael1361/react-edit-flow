@@ -3,7 +3,7 @@ import AddButton from "../AddButton";
 import HeaderNode from "./HeaderNode";
 import { mdiClose, mdiDelete, mdiMapMarker, mdiPencil, mdiPuzzle, mdiUnfoldLessHorizontal, mdiUnfoldMoreHorizontal } from "@mdi/js";
 import Icon from "@mdi/react";
-import { BuilderContext } from "../../Contexts";
+import { BuilderContext, NodeLogsProvider } from "../../Contexts";
 import { SplitLine } from "../Lines";
 import { INode, INodeProps } from "../../Types";
 import BodyNode from "./BodyNode";
@@ -54,63 +54,63 @@ const ActionNode: React.FC<IProps> = ({ id, name, onRemove, onChange, onExpanded
 	const showContent = show && isContent;
 
 	return (
-		<div
-			className={`flow-ui-node`}
-			style={{ ...(style ?? {}), width: fullWidth && layout !== "horizontal" ? "100%" : undefined }}
-		>
+		<NodeLogsProvider>
 			<div
-				className="flow-ui-node_item flow-ui-node__content win2dp radius5"
-				onClick={handleNodeClick}
-				style={{
-					minWidth: showContent ? "400px" : "250px",
-					width: fullWidth && layout !== "horizontal" ? "100%" : showContent ? undefined : "250px",
-				}}
+				className={`flow-ui-node`}
+				style={{ zIndex: 1, ...(style ?? {}), width: fullWidth && layout !== "horizontal" ? "100%" : undefined }}
 			>
-				<HeaderNode
-					icon={
-						icon && typeof icon !== "string" ? (
-							icon
-						) : (
-							<Icon
-								path={typeof icon === "string" ? icon : mdiPuzzle}
-								size={1}
-							/>
-						)
-					}
-					color={color}
-					actions={[
-						{
-							label: show ? "Minimize" : "Expand",
-							action: () => {
-								setShow(!show);
-							},
-							icon: show ? mdiUnfoldLessHorizontal : mdiUnfoldMoreHorizontal,
-						},
-					]}
-					tools={
-						isEditable
-							? [
-									{
-										label: "Rename",
-										action: () => {},
-										icon: mdiPencil,
-										disabled: true,
-									},
-									{
-										label: "Remove",
-										action: () => {
-											onRemove?.(id);
-										},
-										icon: mdiDelete,
-									},
-							  ]
-							: undefined
-					}
-					onClick={() => setShow(!show)}
+				<div
+					className={`flow-ui-node_item flow-ui-node__content ${showContent ? "show" : "hide"} win2dp radius5`}
+					onClick={handleNodeClick}
+					style={{
+						minWidth: showContent ? "400px" : "250px",
+						width: fullWidth && layout !== "horizontal" ? "100%" : showContent ? undefined : "250px",
+					}}
 				>
-					{title}
-				</HeaderNode>
-				{showContent && (
+					<HeaderNode
+						icon={
+							icon && typeof icon !== "string" ? (
+								icon
+							) : (
+								<Icon
+									path={typeof icon === "string" ? icon : mdiPuzzle}
+									size={1}
+								/>
+							)
+						}
+						color={color}
+						actions={[
+							{
+								label: show ? "Minimize" : "Expand",
+								action: () => {
+									setShow(!show);
+								},
+								icon: show ? mdiUnfoldLessHorizontal : mdiUnfoldMoreHorizontal,
+							},
+						]}
+						tools={
+							isEditable
+								? [
+										{
+											label: "Rename",
+											action: () => {},
+											icon: mdiPencil,
+											disabled: true,
+										},
+										{
+											label: "Remove",
+											action: () => {
+												onRemove?.(id);
+											},
+											icon: mdiDelete,
+										},
+								  ]
+								: undefined
+						}
+						onClick={() => setShow(!show)}
+					>
+						{title}
+					</HeaderNode>
 					<BodyNode
 						style={{
 							flexDirection: "column",
@@ -119,6 +119,7 @@ const ActionNode: React.FC<IProps> = ({ id, name, onRemove, onChange, onExpanded
 					>
 						{Array.isArray(declarationsRef.current) && (
 							<RenderNodeDeclarations
+								id={id}
 								declarations={declarationsRef.current}
 								onChange={(d) => {
 									declarationsRef.current = d;
@@ -127,9 +128,9 @@ const ActionNode: React.FC<IProps> = ({ id, name, onRemove, onChange, onExpanded
 							/>
 						)}
 					</BodyNode>
-				)}
+				</div>
 			</div>
-		</div>
+		</NodeLogsProvider>
 	);
 };
 

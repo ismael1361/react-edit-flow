@@ -4,9 +4,10 @@ import { BuilderContext } from "../../Contexts";
 interface IProps {
 	className?: string;
 	style?: any;
+	minSpace?: number;
 }
 
-const SplitLine: React.FC<IProps> = ({ className = "", style }) => {
+const SplitLine: React.FC<IProps> = ({ className = "", style, minSpace = 0 }) => {
 	const { layout, lineColor, spaceX, spaceY } = useContext(BuilderContext);
 
 	return (
@@ -14,10 +15,10 @@ const SplitLine: React.FC<IProps> = ({ className = "", style }) => {
 			className={`flow-ui-line__split ${className}`}
 			style={{
 				backgroundColor: lineColor,
-				width: `${layout === "vertical" ? 2 : spaceX}px`,
-				minWidth: `${layout === "vertical" ? 2 : spaceX}px`,
-				height: `${layout === "vertical" ? spaceY : 2}px`,
-				minHeight: `${layout === "vertical" ? spaceY : 2}px`,
+				width: `${layout === "vertical" ? 2 : Math.max(minSpace, spaceX)}px`,
+				minWidth: `${layout === "vertical" ? 2 : Math.max(minSpace, spaceX)}px`,
+				height: `${layout === "vertical" ? Math.max(minSpace, spaceY) : 2}px`,
+				minHeight: `${layout === "vertical" ? Math.max(minSpace, spaceY) : 2}px`,
 				...style,
 			}}
 		/>

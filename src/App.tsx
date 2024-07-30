@@ -10,20 +10,20 @@ function App() {
 				layout="vertical"
 				variables={[
 					{
-						type: "string",
+						expressionType: "string",
 						name: "nome",
 					},
 					{
-						type: "number",
+						expressionType: "number",
 						name: "age",
 						default: 0,
 					},
 					{
-						type: "string",
+						expressionType: "string",
 						name: "email",
 					},
 					{
-						type: "boolean",
+						expressionType: "boolean",
 						name: "valido",
 						default: true,
 					},

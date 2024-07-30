@@ -1,7 +1,9 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useContext } from "react";
 import Icon from "@mdi/react";
-import { mdiCircle, mdiDotsHorizontal, mdiPuzzle } from "@mdi/js";
-import ContextMenu from "../ContextMenu";
+import { mdiAlert, mdiAlertCircle, mdiAlertCircleOutline, mdiAlertOctagon, mdiCircle, mdiDotsHorizontal, mdiPuzzle } from "@mdi/js";
+import Portal, { ContextMenu } from "../Portal";
+import { NodeLogsContext } from "../../Contexts";
+import { Alert } from "@mui/material";
 
 interface IProps {
 	icon?: ReactNode;
@@ -24,8 +26,13 @@ interface IProps {
 }
 
 const HeaderNode: React.FC<Partial<IProps>> = ({ children, icon, color = "#757575", actions = [], tools = [], onClick }) => {
+	const logRef = React.useRef<HTMLDivElement | null>(null);
 	const toolsRef = React.useRef<HTMLDivElement | null>(null);
+	const [showLogs, setShowLogs] = React.useState<boolean>(false);
 	const [showTools, setShowTools] = React.useState<boolean>(false);
+	const { logs } = useContext(NodeLogsContext);
+
+	const typeLog = logs.findIndex((log) => log.type === "error") !== -1 ? "error" : logs.findIndex((log) => log.type === "warning") !== -1 ? "warning" : "info";
 
 	return (
 		<div className="flow-ui-node__header">
@@ -52,6 +59,22 @@ const HeaderNode: React.FC<Partial<IProps>> = ({ children, icon, color = "#75757
 				</div>
 				<div className="flow-ui-node__header__title">{children}</div>
 			</div>
+			{logs.length > 0 && (
+				<div
+					className="flow-ui-node__header__action"
+					onClick={() => {
+						setShowLogs(true);
+					}}
+					title={"Logs"}
+					ref={logRef}
+				>
+					<Icon
+						path={typeLog === "error" ? mdiAlertOctagon : typeLog === "warning" ? mdiAlert : mdiAlertCircleOutline}
+						size={1}
+						color={typeLog === "error" ? "#c62828" : typeLog === "warning" ? "#e65100" : "rgba(0, 0, 0, .6)"}
+					/>
+				</div>
+			)}
 			{actions.map(({ action, icon, label }, index) => {
 				return (
 					<div
@@ -90,6 +113,28 @@ const HeaderNode: React.FC<Partial<IProps>> = ({ children, icon, color = "#75757
 					/>
 				</>
 			)}
+			<Portal
+				show={showLogs}
+				reference={logRef.current}
+				onClosed={() => {
+					setShowLogs(false);
+				}}
+			>
+				{logs.map(({ message, type }, i) => {
+					return (
+						<Alert
+							key={i}
+							severity={type}
+							style={{
+								borderTop: i !== 0 ? "1px solid rgba(0, 0, 0, .1)" : undefined,
+								borderRadius: 0,
+							}}
+						>
+							{message}
+						</Alert>
+					);
+				})}
+			</Portal>
 		</div>
 	);
 };

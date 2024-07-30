@@ -11,12 +11,13 @@ interface IMenuItem {
 	disabled?: boolean;
 }
 
-const Menu: React.FC<{
-	items: IMenuItem[];
-	complete: (iten: IMenuItem | null, intex: number, self: IMenuItem[]) => void;
+const Portal: React.FC<{
 	reference?: HTMLElement | null;
 	position?: "top" | "bottom" | "left" | "right" | "center";
-}> = ({ items, complete, reference, position }) => {
+	children: ReactNode;
+	onClosed?: () => void;
+	show?: boolean;
+}> = ({ reference, position = "bottom", onClosed, children, show }) => {
 	const mainRef = useRef<HTMLDivElement>(null);
 
 	const getBoundingFragmentRect = (): {
@@ -63,22 +64,22 @@ const Menu: React.FC<{
 			const { top, left, width, height } = mainRef.current.getBoundingClientRect();
 
 			if (left + width > window.innerWidth) {
-				mainRef.current.style.left = `${window.innerWidth - width}px`;
+				mainRef.current.style.left = `${window.innerWidth - width - 15}px`;
 			} else if (left < 0) {
-				mainRef.current.style.left = "0px";
+				mainRef.current.style.left = "15px";
 			}
 
 			if (top + height > window.innerHeight) {
-				mainRef.current.style.top = `${window.innerHeight - height}px`;
+				mainRef.current.style.top = `${window.innerHeight - height - 15}px`;
 			} else if (top < 0) {
-				mainRef.current.style.top = "0px";
+				mainRef.current.style.top = "15px";
 			}
 		};
 
 		const downOutside = (e: MouseEvent) => {
 			if (mainRef.current && !mainRef.current.contains(e.target as Node)) {
 				document.removeEventListener("mousedown", downOutside);
-				complete(null, -1, items);
+				onClosed?.();
 				return;
 			}
 			reposition();
@@ -88,27 +89,56 @@ const Menu: React.FC<{
 		window.addEventListener("scroll", reposition);
 		window.addEventListener("resize", reposition);
 
+		reposition();
+
 		return () => {
 			document.removeEventListener("mousedown", downOutside);
 			window.removeEventListener("scroll", reposition);
 			window.removeEventListener("resize", reposition);
 		};
-	}, [mainRef.current]);
+	}, [show, reference, mainRef.current]);
 
 	const { top, left } = getBoundingFragmentRect();
 
 	return (
-		<Paper
-			ref={mainRef}
-			sx={{
-				position: "fixed",
-				top: top,
-				left: left,
-				zIndex: 9999,
-				width: "90%",
-				maxWidth: 200,
-			}}
-			elevation={5}
+		<>
+			{show &&
+				createPortal(
+					<Paper
+						ref={mainRef}
+						sx={{
+							position: "fixed",
+							top: top,
+							left: left,
+							zIndex: 9999,
+							width: "max-content",
+							minWidth: 200,
+							maxWidth: 400,
+							overflow: "hidden",
+						}}
+						elevation={5}
+					>
+						{children}
+					</Paper>,
+					document.body,
+				)}
+		</>
+	);
+};
+
+export const ContextMenu: React.FC<{
+	items: IMenuItem[];
+	show?: boolean;
+	onClosed?: () => void;
+	reference?: HTMLElement | null;
+	position?: "top" | "bottom" | "left" | "right" | "center";
+}> = ({ items, show, onClosed, reference, position = "bottom" }) => {
+	return (
+		<Portal
+			show={show}
+			reference={reference}
+			position={position}
+			onClosed={onClosed}
 		>
 			<List
 				sx={{
@@ -123,7 +153,8 @@ const Menu: React.FC<{
 							if (item.disabled) {
 								return;
 							}
-							complete(item, i, self);
+							item?.action();
+							onClosed?.();
 						}}
 						disablePadding
 					>
@@ -151,34 +182,8 @@ const Menu: React.FC<{
 					</ListItem>
 				))}
 			</List>
-		</Paper>
+		</Portal>
 	);
 };
 
-const ContextMenu: React.FC<{
-	items: IMenuItem[];
-	show?: boolean;
-	onClosed?: () => void;
-	reference?: HTMLElement | null;
-	position?: "top" | "bottom" | "left" | "right" | "center";
-}> = ({ items, show, onClosed, reference, position = "center" }) => {
-	return (
-		<>
-			{show &&
-				createPortal(
-					<Menu
-						items={items}
-						complete={(item) => {
-							item?.action();
-							onClosed?.();
-						}}
-						reference={reference}
-						position={position}
-					/>,
-					document.body,
-				)}
-		</>
-	);
-};
-
-export default ContextMenu;
+export default Portal;

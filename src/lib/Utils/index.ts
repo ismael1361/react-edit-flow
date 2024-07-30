@@ -37,9 +37,7 @@ export const cloneValue = <T>(obj: T, seen: Map<any, any> = new Map()): T => {
 		const copy: Record<string, any> = {};
 		seen.set(obj, copy); // Add to seen map
 		for (let attr in obj as any) {
-			if ((obj as any).hasOwnProperty(attr)) {
-				copy[attr] = cloneValue((obj as any)[attr], seen);
-			}
+			copy[attr] = cloneValue((obj as any)[attr], seen);
 		}
 		return copy as any;
 	}

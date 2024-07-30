@@ -6,10 +6,11 @@ import { createRegexRenderer, RichTextarea, RichTextareaHandle } from "rich-text
 import { IVariableDefinition } from "../Types";
 import { createPortal } from "react-dom";
 import { NodeContext } from "../Contexts";
+import { variablesColors } from "./VariableDeclaration";
 
-type IInputValueType = "text" | "date" | "time" | "email" | "password" | "number" | "datetime" | "boolean";
+export type IInputValueType = "text" | "date" | "time" | "email" | "password" | "number" | "datetime" | "boolean";
 
-type IInputValue<T extends IInputValueType> = {
+export type IInputValue<T extends IInputValueType> = {
 	default: any;
 	value: any;
 	type: T;
@@ -34,7 +35,7 @@ type IInputValue<T extends IInputValueType> = {
 	  }
 );
 
-export interface IInputProps<T extends IInputValueType = any> extends INodeDeclarationBase {
+export type IInputProps<T extends IInputValueType = any> = INodeDeclarationBase<{
 	type: "input";
 	label?: string;
 	value?: Partial<IInputValue<T>>;
@@ -46,22 +47,8 @@ export interface IInputProps<T extends IInputValueType = any> extends INodeDecla
 	multiline?: boolean;
 	rows?: number;
 	placeholder?: string;
-	onChange?: (value: IInputProps<T>) => void;
-}
-
-const variablesColors: {
-	[type: string]: string;
-} = {
-	string: "#FF5733", // Laranja
-	number: "#33B5E5", // Azul
-	boolean: "#fdd835", // Amarelo
-	any: "#9E9E9E", // Cinza
-	unknown: "#795548", // Marrom
-	Function: "#8BC34A", // Verde
-	Object: "#FF9800", // Laranja escuro
-	Array: "#673AB7", // Roxo
-	Date: "#3F51B5", // Azul escuro
-};
+	onChange?: (value: Omit<IInputProps<T>, "onChange">) => void;
+}>;
 
 const MenuVariables: React.FC<{
 	variables: IVariableDefinition[];
@@ -117,11 +104,11 @@ const MenuVariables: React.FC<{
 									borderRadius: "20px",
 									border: `1px solid rgba(0, 0, 0, 0.1)`,
 									padding: "2px 10px",
-									background: c.color ?? variablesColors[c.type] ?? "#2A6AD3",
+									background: c.color ?? variablesColors[c.expressionType] ?? "#2A6AD3",
 									color: "white",
 								}}
 							>
-								{c.type}
+								{c.expressionType}
 							</div>
 						}
 						disablePadding
@@ -150,8 +137,8 @@ const mentionRenderer = (variables: IVariableDefinition[]) => {
 	};
 
 	return createRegexRenderer(
-		variables.map(({ name, color, type }) => {
-			return [new RegExp(`(?<!\\\\)\\{(${name})\\}`, "g"), { ...style, background: color ?? variablesColors[type] ?? style.background }];
+		variables.map(({ name, color, expressionType }) => {
+			return [new RegExp(`(?<!\\\\)\\{(${name})\\}`, "g"), { ...style, background: color ?? variablesColors[expressionType] ?? style.background }];
 		}),
 	);
 };
@@ -165,7 +152,7 @@ const TextareaVariables = forwardRef<
 		autoHeight?: boolean;
 		defaultValue?: string;
 	} & React.TextareaHTMLAttributes<HTMLTextAreaElement>
->(({ variables = [], style, rows, autoHeight = true, defaultValue, ...props }, ref) => {
+>(({ variables = [], style, rows, autoHeight = true, defaultValue, value, ...props }, ref) => {
 	const mainRef = useRef<RichTextareaHandle>(null);
 
 	const [text, setText] = useState<string>(defaultValue ?? "");
@@ -208,7 +195,7 @@ const TextareaVariables = forwardRef<
 					setText(e.target.value);
 					props.onChange?.(e);
 				}}
-				value={text}
+				value={value ?? text}
 				autoHeight={autoHeight}
 				rows={rows}
 				onKeyDown={(e) => {
@@ -269,7 +256,11 @@ const TextareaVariables = forwardRef<
 	);
 });
 
-const InputDeclaration: React.FC<IProps<IInputProps<any>>> = ({
+const InputDeclaration: React.FC<
+	IProps<IInputProps<any>> & {
+		fullWidth?: boolean;
+	}
+> = ({
 	required = false,
 	label,
 	value = {
@@ -284,23 +275,28 @@ const InputDeclaration: React.FC<IProps<IInputProps<any>>> = ({
 	rows = 1,
 	placeholder,
 	onChange,
+	fullWidth = true,
 	...props
 }) => {
 	const id = useId();
 	const { getVariables } = React.useContext(NodeContext);
 
+	const valueDefined = value?.value !== undefined;
+	const currentValue = value?.value ?? value?.default ?? (value?.type === "boolean" ? false : value?.type === "number" ? 0 : "");
+
+	const defaultDefined = value?.default !== undefined;
+	const defaultValue = defaultDefined ? value.default : value.type === "boolean" ? false : value.type === "number" ? 0 : "";
+
 	const toChange = (v: string | number | boolean) => {
 		onChange?.({ required, label, value: { ...value, value: v }, autoComplete, helperText, disabled, multiline, rows, placeholder, ...props });
 	};
-
-	const v = value?.value ?? value?.default ?? (value?.type === "boolean" ? false : value?.type === "number" ? 0 : "");
 
 	return (
 		<>
 			{value?.type === "boolean" ? (
 				<FormControl
 					disabled={disabled}
-					fullWidth
+					fullWidth={fullWidth}
 					size="small"
 					sx={{
 						margin: "5px 0px",
@@ -310,7 +306,7 @@ const InputDeclaration: React.FC<IProps<IInputProps<any>>> = ({
 					<Select
 						labelId={id}
 						label={label}
-						defaultValue={v ? "1" : "0"}
+						value={(valueDefined && currentValue) || defaultValue ? "1" : "0"}
 						onChange={(e) => {
 							toChange(e.target.value === "1");
 						}}
@@ -323,22 +319,26 @@ const InputDeclaration: React.FC<IProps<IInputProps<any>>> = ({
 			) : (
 				<TextField
 					onChange={(e) => {
-						value?.type === "number" ? toChange(parseFloat(e.target.value)) : toChange(e.target.value);
+						const v = value?.type === "number" ? parseFloat(e.target.value) : e.target.value;
+						toChange(v);
 					}}
 					required={required}
 					label={label}
-					defaultValue={v}
-					type={value?.type}
+					type={value?.type === "datetime" ? "datetime-local" : value?.type}
+					value={valueDefined ? currentValue : defaultValue}
 					autoComplete={autoComplete}
 					helperText={helperText}
 					disabled={disabled}
 					multiline={["text"].includes(value?.type ?? "text") || multiline}
 					rows={rows}
 					placeholder={placeholder}
-					fullWidth
+					fullWidth={fullWidth}
 					size="small"
 					sx={{
 						margin: "5px 0px",
+					}}
+					InputLabelProps={{
+						shrink: ["number", "datetime"].includes(value?.type ?? "text") ? true : undefined,
 					}}
 					InputProps={
 						["text"].includes(value?.type ?? "text")

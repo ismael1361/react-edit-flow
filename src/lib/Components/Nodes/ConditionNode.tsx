@@ -59,11 +59,15 @@ const ConditionNode: React.FC<IProps> = ({ id, type, name, onRemove, onChange, o
 			/>
 			{show && (
 				<>
-					<SplitLine />
+					{/* <SplitLine /> */}
 					<div
 						className="flow-ui-branch-node__conditions"
 						style={{
-							borderColor: lineColor,
+							// borderColor: lineColor,
+							marginTop: "-25px",
+							zIndex: 0,
+							paddingTop: "0px",
+							borderWidth: "0px",
 						}}
 					>
 						{nodes.current.map(({ children = [], ...node }, index, self) => {
@@ -90,9 +94,9 @@ const ConditionNode: React.FC<IProps> = ({ id, type, name, onRemove, onChange, o
 									className="flow-ui-node flow-ui-condition-node"
 									key={node.id}
 								>
-									{/* <CoverLine className={`cover-condition-start ${coverIndexClassName}`} /> */}
+									<CoverLine className={`cover-condition-start ${coverIndexClassName}`} />
 									<div className="flow-ui-node">
-										{/* <SplitLine /> */}
+										<SplitLine minSpace={35} />
 										<ActionNode
 											{...node}
 											isEditable={false}
@@ -133,7 +137,7 @@ const ConditionNode: React.FC<IProps> = ({ id, type, name, onRemove, onChange, o
 											</>
 										)}
 									</div>
-									{/* <CoverLine className={`cover-condition-end ${coverIndexClassName}`} /> */}
+									<CoverLine className={`cover-condition-end ${coverIndexClassName}`} />
 								</div>
 							);
 						})}

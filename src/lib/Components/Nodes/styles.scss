@@ -1,6 +1,5 @@
 .flow-ui-node_item {
     min-width: 200px;
-    min-height: 30px;
     background-color: #fff;
     display: flex;
     flex-direction: column;
@@ -16,20 +15,10 @@
         border-bottom-width: 2px;
         transition: all 0.3s;
         user-select: none;
-
-        &:first-child {
-            border-top-width: 2px;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-        }
-
-        &:last-child {
-            border-bottom-left-radius: 5px;
-            border-bottom-right-radius: 5px;
-        }
     }
 
     >.flow-ui-node__header {
+        flex: 1;
         display: flex;
         align-items: center;
         justify-content: flex-start;
@@ -37,6 +26,12 @@
         width: 100%;
         background-color: #f5f5f5;
         color: #000;
+        z-index: 1;
+        overflow: hidden;
+        border-top-width: 2px;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+        min-height: 40px;
 
         >*:last-child {
             margin-right: 5px;
@@ -56,6 +51,7 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
+            padding: 0 15px 0 0;
 
             >.flow-ui-node__header__icon {
                 display: flex;
@@ -84,7 +80,7 @@
                 text-overflow: ellipsis;
                 font-size: 18px;
                 opacity: .7;
-                margin-right: 15px;
+                width: 0;
             }
         }
 
@@ -92,7 +88,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 24px;
+            width: 28px;
+            min-width: 28px;
             height: 35px;
             cursor: pointer;
 
@@ -113,10 +110,23 @@
     >.flow-ui-node__content {
         flex: 1;
         display: flex;
-        width: 100%;
-        min-height: 40px;
         background-color: #f5f5f5;
         padding: 15px;
+        width: 100%;
+        z-index: 0;
+        border-bottom-left-radius: 5px;
+        border-bottom-right-radius: 5px;
+    }
+
+    &.hide {
+        >.flow-ui-node__header {
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+
+        >.flow-ui-node__content {
+            display: none;
+        }
     }
 }
 
