@@ -280,14 +280,17 @@ const InputDeclaration: React.FC<
 }) => {
 	const id = useId();
 	const { getVariables } = React.useContext(NodeContext);
+	const [defaultValue, setDefaultValue] = useState<string | number | boolean>(value?.default ?? (value?.type === "boolean" ? false : value?.type === "number" ? 0 : ""));
+	const [currentValue, setCurrentValue] = useState<string | number | boolean | undefined>(value?.value);
 
-	const valueDefined = value?.value !== undefined;
-	const currentValue = value?.value ?? value?.default ?? (value?.type === "boolean" ? false : value?.type === "number" ? 0 : "");
-
-	const defaultDefined = value?.default !== undefined;
-	const defaultValue = defaultDefined ? value.default : value.type === "boolean" ? false : value.type === "number" ? 0 : "";
+	useEffect(() => {
+		setCurrentValue((p) => {
+			return value?.value ?? p;
+		});
+	}, [value]);
 
 	const toChange = (v: string | number | boolean) => {
+		setCurrentValue(() => v);
 		onChange?.({ required, label, value: { ...value, value: v }, autoComplete, helperText, disabled, multiline, rows, placeholder, ...props });
 	};
 
@@ -306,7 +309,7 @@ const InputDeclaration: React.FC<
 					<Select
 						labelId={id}
 						label={label}
-						value={(valueDefined && currentValue) || defaultValue ? "1" : "0"}
+						value={currentValue || defaultValue ? "1" : "0"}
 						onChange={(e) => {
 							toChange(e.target.value === "1");
 						}}
@@ -325,7 +328,7 @@ const InputDeclaration: React.FC<
 					required={required}
 					label={label}
 					type={value?.type === "datetime" ? "datetime-local" : value?.type}
-					value={valueDefined ? currentValue : defaultValue}
+					value={currentValue ?? defaultValue}
 					autoComplete={autoComplete}
 					helperText={helperText}
 					disabled={disabled}

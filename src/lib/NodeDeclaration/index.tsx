@@ -37,13 +37,16 @@ const RenderNodeDeclarations: React.FC<{
 					});
 				}
 			});
-		}, 200);
+		}, 100);
 	};
 
 	const byChange = (index: number) => (value: INodeDeclarationBase<any>) => {
-		declarationsRef.current[index] = { ...declarationsRef.current[index], ...value };
-		onChange?.(declarationsRef.current);
-		verify();
+		clearTimeout(time.current);
+		time.current = setTimeout(() => {
+			declarationsRef.current[index] = { ...declarationsRef.current[index], ...value };
+			onChange?.(declarationsRef.current);
+			verify();
+		}, 100);
 	};
 
 	useEffect(() => {
