@@ -129,8 +129,8 @@ const VariableDeclaration: React.FC<
 			type: "variable",
 			name,
 			expressionType: type as any,
-			default: value[type]?.default,
-			value: value[type]?.value,
+			default: value[valueType]?.default,
+			value: value[valueType]?.value,
 			isConstant: def === "const",
 			definition: def,
 			color: color ?? variablesColors[valueType] ?? types.find((t) => t.name === valueType)?.color ?? variablesColors.any,
@@ -138,7 +138,7 @@ const VariableDeclaration: React.FC<
 		});
 	}, [def, type, valueType, name, value]);
 
-	const currentValue = value?.[type]?.value ?? value?.[type]?.default ?? (valueType === "number" ? 0 : valueType === "boolean" ? true : "");
+	const currentValue = value?.[valueType]?.value ?? value?.[valueType]?.default ?? (valueType === "number" ? 0 : valueType === "boolean" ? true : "");
 
 	return (
 		<>
@@ -298,16 +298,16 @@ const VariableDeclaration: React.FC<
 					label="Value"
 					value={{
 						value: currentValue,
-						...(value?.[type] as any),
+						...(value?.[valueType] as any),
 						type: valueType,
 					}}
 					onMutate={(v) => {
 						setValue((p) => {
 							return {
 								...p,
-								[type]: {
+								[valueType]: {
 									value: v.value?.value,
-									default: p?.[type]?.default ?? undefined,
+									default: p?.[valueType]?.default ?? undefined,
 								},
 							};
 						});

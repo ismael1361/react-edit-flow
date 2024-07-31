@@ -284,10 +284,11 @@ const InputDeclaration: React.FC<
 	const [currentValue, setCurrentValue] = useState<string | number | boolean | undefined>(value?.value);
 
 	useEffect(() => {
+		if (value?.value === currentValue) return;
 		setCurrentValue((p) => {
 			return value?.value ?? p;
 		});
-	}, [value]);
+	}, [value?.value]);
 
 	const toChange = (v: string | number | boolean) => {
 		setCurrentValue(() => v);
@@ -309,7 +310,7 @@ const InputDeclaration: React.FC<
 					<Select
 						labelId={id}
 						label={label}
-						value={currentValue || defaultValue ? "1" : "0"}
+						value={currentValue !== undefined ? (currentValue ? "1" : "0") : defaultValue ? "1" : "0"}
 						onChange={(e) => {
 							toChange(e.target.value === "1");
 						}}
