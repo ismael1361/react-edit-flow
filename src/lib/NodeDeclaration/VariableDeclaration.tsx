@@ -121,7 +121,7 @@ const VariableDeclaration: React.FC<
 	const [name, setName] = React.useState<string>(n);
 
 	const [value, setValue] = React.useState<{ [k: string]: { value: string | number | boolean; default?: string | number | boolean } }>({
-		[variableType]: { value: v, default: v },
+		[valueType]: { value: v, default: v },
 	});
 
 	useEffect(() => {
