@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import InputDeclaration, { IInputProps } from "./InputDeclaration";
 import ConditionDeclaration, { IConditionProps } from "./ConditionDeclaration";
 import VariableDeclaration, { IVariableProps } from "./VariableDeclaration";
-import { NodeLogsContext } from "../Contexts";
+import { BuilderContext, NodeLogsContext } from "../Contexts";
 
 export type IProps<T extends Object> = T & { onChange?: (value: any) => void };
 
@@ -14,6 +14,7 @@ interface Log {
 export type INodeDeclarationBase<P extends Object> = {
 	type: string;
 	tryOut?: (props: P) => Log | Log[];
+	onChange?: (props: P) => P;
 } & P;
 
 const RenderNodeDeclarations: React.FC<{
@@ -44,6 +45,9 @@ const RenderNodeDeclarations: React.FC<{
 		clearTimeout(time.current);
 		time.current = setTimeout(() => {
 			declarationsRef.current[index] = { ...declarationsRef.current[index], ...value };
+			if (typeof declarationsRef.current[index].onChange === "function") {
+				declarationsRef.current[index] = (declarationsRef.current[index] as any).onChange(declarationsRef.current[index]);
+			}
 			onChange?.(declarationsRef.current);
 			verify();
 		}, 100);
@@ -64,12 +68,12 @@ const RenderNodeDeclarations: React.FC<{
 							<VariableDeclaration
 								{...(declaration as IVariableProps)}
 								byId={id}
-								onChange={byChange(index)}
+								onMutate={byChange(index)}
 							/>
 						) : declaration.type === "input" ? (
 							<InputDeclaration
 								{...(declaration as IInputProps)}
-								onChange={byChange(index)}
+								onMutate={byChange(index)}
 							/>
 						) : null}
 					</React.Fragment>

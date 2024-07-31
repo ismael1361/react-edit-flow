@@ -47,7 +47,6 @@ export type IInputProps<T extends IInputValueType = any> = INodeDeclarationBase<
 	multiline?: boolean;
 	rows?: number;
 	placeholder?: string;
-	onChange?: (value: Omit<IInputProps<T>, "onChange">) => void;
 }>;
 
 const MenuVariables: React.FC<{
@@ -259,6 +258,7 @@ const TextareaVariables = forwardRef<
 const InputDeclaration: React.FC<
 	IProps<IInputProps<any>> & {
 		fullWidth?: boolean;
+		onMutate?: (value: IInputProps<any>) => void;
 	}
 > = ({
 	required = false,
@@ -274,7 +274,7 @@ const InputDeclaration: React.FC<
 	multiline,
 	rows = 1,
 	placeholder,
-	onChange,
+	onMutate,
 	fullWidth = true,
 	...props
 }) => {
@@ -291,7 +291,7 @@ const InputDeclaration: React.FC<
 
 	const toChange = (v: string | number | boolean) => {
 		setCurrentValue(() => v);
-		onChange?.({ required, label, value: { ...value, value: v }, autoComplete, helperText, disabled, multiline, rows, placeholder, ...props });
+		onMutate?.({ required, label, value: { ...value, value: v }, autoComplete, helperText, disabled, multiline, rows, placeholder, ...props });
 	};
 
 	return (

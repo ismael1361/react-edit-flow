@@ -24,14 +24,14 @@ export interface INode {
 	[key: string]: any;
 }
 
-export interface IRegisterNode {
+export interface IRegisterNode<T extends INodeDeclaration[] = INodeDeclaration[]> {
 	type: INodeType;
 	title: string;
 	category?: INodeCategory | INodeCategory[];
 	icon?: React.ReactNode;
 	color?: string;
-	declarations?: INodeDeclaration[];
-	onCall?: (node: INodeDeclaration[]) => void;
+	declarations?: T;
+	onCall?: (node: T) => void;
 	keys?: string[];
 	variables?: Required<IVariableDefinition, "name">[];
 	operable?: boolean;

@@ -38,7 +38,6 @@ export type IVariableProps = INodeDeclarationBase<
 	Required<IVariableDefinition, "name"> & {
 		type: "variable";
 		validTypes?: IVariableType[];
-		onChange?: (value: Omit<IVariableProps, "validTypes" | "onChange">) => void;
 	}
 >;
 
@@ -107,7 +106,11 @@ const posibleTypes: IVariableType[] = [
 	},
 ];
 
-const VariableDeclaration: React.FC<IVariableProps> = ({ validTypes = [], definition = "var", expressionType: variableType = "any", name: n = "", value: v = "", color, byId, onChange }) => {
+const VariableDeclaration: React.FC<
+	IVariableProps & {
+		onMutate?: (value: Omit<IVariableProps, "validTypes">) => void;
+	}
+> = ({ validTypes = [], definition = "var", expressionType: variableType = "any", name: n = "", value: v = "", color, byId, onMutate }) => {
 	const types: IVariableType[] = [...posibleTypes, ...validTypes];
 	const id_01 = useId();
 	const id_02 = useId();
@@ -122,7 +125,7 @@ const VariableDeclaration: React.FC<IVariableProps> = ({ validTypes = [], defini
 	});
 
 	useEffect(() => {
-		onChange?.({
+		onMutate?.({
 			type: "variable",
 			name,
 			expressionType: type as any,
@@ -298,12 +301,12 @@ const VariableDeclaration: React.FC<IVariableProps> = ({ validTypes = [], defini
 						...(value?.[type] as any),
 						type: valueType,
 					}}
-					onChange={(v) => {
+					onMutate={(v) => {
 						setValue((p) => {
 							return {
 								...p,
 								[type]: {
-									value: v.value.value,
+									value: v.value?.value,
 									default: p?.[type]?.default ?? undefined,
 								},
 							};
