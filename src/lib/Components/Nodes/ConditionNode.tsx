@@ -14,14 +14,14 @@ const ConditionNode: React.FC<IProps> = ({ node, onRemove, onChange, onExpanded 
 	const { isCollapsed, color: _color, icon: _icon, children } = node;
 	const update = useUpdate();
 	const { lineColor } = useContext(BuilderContext);
-	const [show, setShow] = useState<boolean>(isCollapsed);
+	const [show, setShow] = useState<boolean>(!isCollapsed);
 
 	const toChange = () => {
 		onChange?.(node);
 	};
 
 	useEffect(() => {
-		node.collapsed = show;
+		node.collapsed = !show;
 		toChange();
 		onExpanded?.(show);
 	}, [show]);
@@ -84,12 +84,12 @@ const ConditionNode: React.FC<IProps> = ({ node, onRemove, onChange, onExpanded 
 											isContent={false}
 											fullWidth={true}
 											onExpanded={(expanded) => {
-												node.children[index].setCollapsed(expanded);
+												node.children[index].setCollapsed(!expanded);
 												update();
 												toChange();
 											}}
 										/>
-										{!n.isCollapsed ? (
+										{n.isCollapsed ? (
 											<FillLine />
 										) : (
 											<>

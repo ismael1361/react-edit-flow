@@ -19,14 +19,14 @@ const ActionNode: React.FC<IProps> = ({ node, onRemove, onChange, onExpanded, is
 	const { id, fields, isCollapsed, color: _color, icon: _icon, title = "Start", category: c = "other" } = node;
 	const { categories, layout = "vertical" } = useContext(BuilderContext);
 	const fieldsRef = useRef<INodeField[]>(fields ?? []);
-	const [show, setShow] = useState<boolean>(isCollapsed);
+	const [show, setShow] = useState<boolean>(!isCollapsed);
 	const category: string[] = Array.isArray(c) ? c : [c];
 
 	const handleNodeClick = () => {};
 
 	const toChange = () => {
 		node.fields = fieldsRef.current;
-		node.collapsed = show;
+		node.collapsed = !show;
 		onChange?.(node);
 	};
 
