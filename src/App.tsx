@@ -8,16 +8,16 @@ const registerNodes: RegisterNode[] = [];
 registerNodes.push(
 	new RegisterNode({
 		name: "CustomNode",
-		init(node) {
-			node.setTitle("Custom Node");
-			node.setCategory("other");
-			node.setIcon(mdiStarFourPointsCircle);
-			node.setType("action");
+		init() {
+			this.setTitle("Custom Node");
+			this.setCategory("other");
+			this.setIcon(mdiStarFourPointsCircle);
+			this.setType("action");
 
-			node.appendFieldTextInput("nome", "Name");
-			node.appendFieldNumber("age", "Age", 0);
-			node.appendFieldTextInput("email", "Email", "email");
-			node.appendFieldBoolean("valido", "Valid", true);
+			this.appendFieldTextInput("nome", "Name");
+			this.appendFieldNumber("age", "Age", 0);
+			this.appendFieldTextInput("email", "Email", "", "email");
+			this.appendFieldBoolean("valido", "Valid", true);
 		},
 	}),
 );

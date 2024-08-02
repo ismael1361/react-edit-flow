@@ -50,19 +50,19 @@ class RegisterNode {
 	// Define o texto de dica de ferramenta do bloco.
 	tooltip: string | (() => string) = "";
 
-	readonly generator?: (node: RegisterNode, typeCode: "javascript" | "python" | "java" | "lua" | "dart") => string;
-	readonly validate?: (node: RegisterNode) => Array<{ type: "error" | "warning" | "info"; message: string }>;
+	readonly generator?: (this: RegisterNode, node: RegisterNode, typeCode: "javascript" | "python" | "java" | "lua" | "dart") => string;
+	readonly validate?: (this: RegisterNode, node: RegisterNode) => Array<{ type: "error" | "warning" | "info"; message: string }>;
 
 	constructor(
 		readonly options: {
 			name: string;
-			init: (node: RegisterNode) => void;
-			generator?: (node: RegisterNode, typeCode: "javascript" | "python" | "java" | "lua" | "dart") => string;
-			validate?: (node: RegisterNode) => Array<{ type: "error" | "warning" | "info"; message: string }>;
+			init: (this: RegisterNode, node: RegisterNode) => void;
+			generator?: (this: RegisterNode, node: RegisterNode, typeCode: "javascript" | "python" | "java" | "lua" | "dart") => string;
+			validate?: (this: RegisterNode, node: RegisterNode) => Array<{ type: "error" | "warning" | "info"; message: string }>;
 		},
 	) {
-		this.generator = options.generator;
-		this.validate = options.validate;
+		this.generator = options.generator ? options.generator.bind(this) : undefined;
+		this.validate = options.validate ? options.validate.bind(this) : undefined;
 
 		options.init.call(this, this);
 

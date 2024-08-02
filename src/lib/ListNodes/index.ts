@@ -5,11 +5,11 @@ const ListNodes: RegisterNode[] = [];
 ListNodes.push(
 	new RegisterNode({
 		name: "condition",
-		init(node) {
-			node.setType("condition");
-			node.setTitle("Condition");
-			node.setCategory("control");
-			node.setKeys(["condition", "if", "else"]);
+		init() {
+			this.setType("condition");
+			this.setTitle("Condition");
+			this.setCategory("control");
+			this.setKeys(["condition", "if", "else"]);
 		},
 	}),
 );
@@ -17,20 +17,20 @@ ListNodes.push(
 ListNodes.push(
 	new RegisterNode({
 		name: "variable-initialize",
-		init(node) {
-			node.setType("action");
-			node.setTitle("Initialize Variable");
-			node.setCategory("variable");
-			node.appendFieldVariable("variable", "");
-			node.setKeys(["variable", "initialize", "var", "let", "const"]);
+		init() {
+			this.setType("action");
+			this.setTitle("Initialize Variable");
+			this.setCategory("variable");
+			this.appendFieldVariable("variable", "");
+			this.setKeys(["variable", "initialize", "var", "let", "const"]);
 		},
-		validate: (node) => {
+		validate() {
 			const messages: {
 				type: "error" | "warning" | "info";
 				message: string;
 			}[] = [];
 
-			const { name = "", definition = "var", value } = node.getField("variable") ?? {};
+			const { name = "", definition = "var", value } = this.getField("variable") ?? {};
 
 			if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) {
 				messages.push({
