@@ -6,10 +6,10 @@ import Icon from "@mdi/react";
 import { BuilderContext } from "../../Contexts";
 import { SplitLine } from "../Lines";
 import { useId } from "../../Hooks";
-import { INode } from "../../Types";
+import RegisterNode from "../../RegisterNode";
 
 interface IProps {
-	onAdd: (node: INode) => void;
+	onAdd: (node: RegisterNode) => void;
 }
 
 const StartNode: React.FC<Partial<IProps>> = ({ onAdd }) => {

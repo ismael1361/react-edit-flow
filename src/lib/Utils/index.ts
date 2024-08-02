@@ -1,4 +1,5 @@
 export * from "./AnalyzeJavaScript";
+export * from "./colour";
 
 export const uuidv4 = () => {
 	return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {

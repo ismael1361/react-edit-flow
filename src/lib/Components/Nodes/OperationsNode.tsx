@@ -5,53 +5,12 @@ import Icon from "@mdi/react";
 import { mdiArrowExpandDown, mdiClose, mdiMagnify, mdiPuzzle } from "@mdi/js";
 import BodyNode from "./BodyNode";
 import { TextField } from "@mui/material";
-import { INode, IRegisterNode } from "../../Types";
-import { cloneValue, uuidv4 } from "../../Utils";
+import RegisterNode from "../../RegisterNode";
 
 interface IProps {
 	onClone: () => void;
-	onAdd: (node: INode) => void;
+	onAdd: (node: RegisterNode) => void;
 }
-
-const getNodeInfo = (
-	nodeId: string,
-	registerNodes: {
-		[k: string]: IRegisterNode;
-	},
-): INode => {
-	const { color, type, variables, declarations = [] } = registerNodes[nodeId] ?? {};
-
-	const nodeIdInfo = uuidv4();
-
-	const nodeInfo: INode = {
-		id: nodeIdInfo,
-		name: nodeId,
-		type,
-		data: {
-			declarations: cloneValue(declarations),
-			variables: (variables ?? []).map((variable) => {
-				return {
-					...variable,
-					color: variable.color ?? color,
-					byId: nodeIdInfo,
-				};
-			}),
-		},
-		children: [],
-		next: [],
-		isExpanded: true,
-	};
-
-	if (type === "condition") {
-		if (!Array.isArray(nodeInfo.children)) {
-			nodeInfo.children = [];
-		}
-		nodeInfo.children.push(getNodeInfo("if", registerNodes));
-		nodeInfo.children.push(getNodeInfo("else", registerNodes));
-	}
-
-	return nodeInfo;
-};
 
 const OperationsNode: React.FC<IProps> = ({ onClone, onAdd }) => {
 	const [typeList, setTypeList] = useState<number>(0);
@@ -161,17 +120,20 @@ const OperationsNode: React.FC<IProps> = ({ onClone, onAdd }) => {
 						})}
 					</div>
 					<div className="flow-ui-node_operations_list">
-						{Object.entries(registerNodes).map(([nodeId, { icon, color, category: c = "other", title = "", keys = [], operable = true }], index) => {
-							const category: string[] = Array.isArray(c) ? c : [c];
+						{registerNodes.map((node, index) => {
+							// { icon, color, category: c = "other", title = "", keys = [], operable = true }
+							const category: string[] = Array.isArray(node.category) ? node.category : [node.category];
 							const [selectId, selectItem] = Object.entries(categories)[typeList] ?? ["", {}];
 							const validSearch: boolean =
 								search.trim() !== "" &&
 								(title.trim().toLowerCase().search(search.trim().toLowerCase()) >= 0 ||
-									keys.findIndex((key) => key.trim().toLowerCase().search(search.trim().toLowerCase()) >= 0) >= 0);
+									node.keys.findIndex((key) => key.trim().toLowerCase().search(search.trim().toLowerCase()) >= 0) >= 0);
 
-							if (!operable || !(selectItem.isAll || category.includes(selectId) || validSearch)) {
+							if (!node.operable || !(selectItem.isAll || category.includes(selectId) || validSearch)) {
 								return null;
 							}
+
+							let { color, icon } = node;
 
 							if (Array.isArray(category) && category[0] in categories) {
 								color = !color ? (categories as any)[category[0]]?.color ?? color : color;
@@ -182,7 +144,7 @@ const OperationsNode: React.FC<IProps> = ({ onClone, onAdd }) => {
 								<div
 									key={index}
 									onClick={() => {
-										onAdd?.(getNodeInfo(nodeId, registerNodes));
+										onAdd?.(node.createNode());
 										onClone?.();
 									}}
 								>

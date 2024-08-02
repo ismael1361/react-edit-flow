@@ -1,38 +1,27 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { INode, INodeProps } from "../../Types";
+import { INodeProps } from "../../Types";
 import ActionNode from "./ActionNode";
 import { CoverLine, FillLine, SplitLine } from "../Lines";
 import AddButton from "../AddButton";
 import { useUpdate } from "../../Hooks";
 import { RenderNode } from "../ReactFlowUI";
 import { BuilderContext } from "../../Contexts";
+import RegisterNode from "../../RegisterNode";
 
 interface IProps extends INodeProps {}
 
-// onRemove, onChange, data, children, next, isExpanded = false
-
-const ConditionNode: React.FC<IProps> = ({ id, type, name, onRemove, onChange, onExpanded, data, children = [], next, isExpanded = false, ...node }) => {
+const ConditionNode: React.FC<IProps> = ({ node, onRemove, onChange, onExpanded }) => {
+	const { isCollapsed, color: _color, icon: _icon, children } = node;
 	const update = useUpdate();
 	const { lineColor } = useContext(BuilderContext);
-	const [show, setShow] = useState<boolean>(isExpanded);
-	const nodes = useRef<INode[]>(children);
-	const dataRef = useRef(data);
+	const [show, setShow] = useState<boolean>(isCollapsed);
 
 	const toChange = () => {
-		const node: INode = {
-			id,
-			name,
-			type,
-			data: dataRef.current,
-			children: nodes.current,
-			next,
-			isExpanded: show,
-		};
-
 		onChange?.(node);
 	};
 
 	useEffect(() => {
+		node.collapsed = show;
 		toChange();
 		onExpanded?.(show);
 	}, [show]);
@@ -40,17 +29,9 @@ const ConditionNode: React.FC<IProps> = ({ id, type, name, onRemove, onChange, o
 	return (
 		<>
 			<ActionNode
-				{...node}
-				type="action"
-				id={id}
-				name={name}
-				data={data}
-				children={children}
-				next={[]}
-				isExpanded={isExpanded}
+				node={node}
 				onRemove={onRemove}
-				onChange={({ data }) => {
-					dataRef.current = data;
+				onChange={(node) => {
 					toChange();
 				}}
 				onExpanded={(expanded) => {
@@ -70,21 +51,21 @@ const ConditionNode: React.FC<IProps> = ({ id, type, name, onRemove, onChange, o
 							borderWidth: "0px",
 						}}
 					>
-						{nodes.current.map(({ children = [], ...node }, index, self) => {
+						{node.children.map((n, index, self) => {
 							const coverIndexClassName = index === 0 ? "cover-first" : index === self.length - 1 ? "cover-last" : "cover-middle";
 
-							const onAdd = (i: number) => (node: INode) => {
-								const start = children.slice(0, i);
-								const end = children.slice(i);
-								nodes.current[index].children = [...start, node, ...end];
+							const onAdd = (i: number) => (newNode: RegisterNode) => {
+								const start = n.children.slice(0, i);
+								const end = n.children.slice(i);
+								node.children[index].children = [...start, newNode, ...end];
 								update();
 								toChange();
 							};
 
 							const onRemove = (id: string) => {
-								const i = children.findIndex((node) => node.id === id);
-								children.splice(i, 1);
-								nodes.current[index].children = children;
+								const i = n.children.findIndex((node) => node.id === id);
+								n.children.splice(i, 1);
+								node.children[index] = n;
 								update();
 								toChange();
 							};
@@ -92,41 +73,40 @@ const ConditionNode: React.FC<IProps> = ({ id, type, name, onRemove, onChange, o
 							return (
 								<div
 									className="flow-ui-node flow-ui-condition-node"
-									key={node.id}
+									key={n.id}
 								>
 									<CoverLine className={`cover-condition-start ${coverIndexClassName}`} />
 									<div className="flow-ui-node">
 										<SplitLine minSpace={35} />
 										<ActionNode
-											{...node}
+											node={n}
 											isEditable={false}
 											isContent={false}
 											fullWidth={true}
 											onExpanded={(expanded) => {
-												nodes.current[index].isExpanded = expanded;
+												node.children[index].setCollapsed(expanded);
 												update();
 												toChange();
 											}}
 										/>
-										{!node.isExpanded ? (
+										{!n.isCollapsed ? (
 											<FillLine />
 										) : (
 											<>
 												<SplitLine />
 												<AddButton
-													isEnd={children.length === 0}
-													fillLine={children.length === 0}
+													isEnd={n.children.length === 0}
+													fillLine={n.children.length === 0}
 													onAdd={onAdd(0)}
 												/>
-												{children.map((child, i, self) => {
+												{n.children.map((child, i, self) => {
 													return (
 														<RenderNode
 															key={i}
-															{...child}
+															node={child}
 															onRemove={onRemove}
-															onChange={(node) => {
-																self[i] = node;
-																nodes.current[index].children = self;
+															onChange={(n) => {
+																node.children[index].children[i] = n;
 																toChange();
 															}}
 															onAdd={onAdd(i + 1)}

@@ -1,7 +1,26 @@
 // Dentro de `example/src/App.tsx`
 import React from "react";
-import ReactFlowUI from "./lib";
+import ReactFlowUI, { RegisterNode } from "./lib";
 import { mdiStarFourPointsCircle } from "@mdi/js";
+
+const registerNodes: RegisterNode[] = [];
+
+registerNodes.push(
+	new RegisterNode({
+		name: "CustomNode",
+		init(node) {
+			node.setTitle("Custom Node");
+			node.setCategory("other");
+			node.setIcon(mdiStarFourPointsCircle);
+			node.setType("action");
+
+			node.appendFieldTextInput("nome", "Name");
+			node.appendFieldNumber("age", "Age", 0);
+			node.appendFieldTextInput("email", "Email", "email");
+			node.appendFieldBoolean("valido", "Valid", true);
+		},
+	}),
+);
 
 function App() {
 	return (
@@ -28,42 +47,7 @@ function App() {
 						default: true,
 					},
 				]}
-				registerNodes={{
-					CustomNode: {
-						title: "Custom Node",
-						type: "action",
-						declarations: [
-							{
-								type: "input",
-								label: "Name",
-							},
-							{
-								type: "input",
-								label: "Age",
-								value: {
-									type: "number",
-									default: 0,
-								},
-							},
-							{
-								type: "input",
-								label: "Email",
-								value: {
-									type: "email",
-									default: "",
-								},
-							},
-							{
-								type: "input",
-								label: "Válido",
-								value: {
-									type: "boolean",
-									default: true,
-								},
-							},
-						],
-					},
-				}}
+				registerNodes={registerNodes}
 			/>
 		</div>
 	);

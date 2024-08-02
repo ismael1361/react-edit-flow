@@ -1,13 +1,13 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import AddButton from "../AddButton";
 import HeaderNode from "./HeaderNode";
-import { mdiClose, mdiDelete, mdiMapMarker, mdiPencil, mdiPuzzle, mdiUnfoldLessHorizontal, mdiUnfoldMoreHorizontal } from "@mdi/js";
+import { mdiDelete, mdiMapMarker, mdiPencil, mdiPuzzle, mdiUnfoldLessHorizontal, mdiUnfoldMoreHorizontal } from "@mdi/js";
 import Icon from "@mdi/react";
 import { BuilderContext, NodeLogsProvider } from "../../Contexts";
 import { SplitLine } from "../Lines";
-import { INode, INodeProps } from "../../Types";
+import { INodeProps } from "../../Types";
 import BodyNode from "./BodyNode";
-import RenderNodeDeclarations, { INodeDeclaration } from "../../NodeDeclaration";
+import RenderNodeFields, { INodeField } from "../../NodeField";
 
 interface IProps extends INodeProps {
 	isEditable?: boolean;
@@ -15,30 +15,18 @@ interface IProps extends INodeProps {
 	style?: React.CSSProperties;
 }
 
-const ActionNode: React.FC<IProps> = ({ id, name, onRemove, onChange, onExpanded, data, children, next, isExpanded = false, isEditable = true, style, isContent = true, fullWidth = false }) => {
-	const { registerNodes, categories, layout = "vertical" } = useContext(BuilderContext);
-	const declarationsRef = useRef<INodeDeclaration[]>(data?.declarations ?? []);
-	const [show, setShow] = useState<boolean>(isExpanded);
-	const { color: _color, icon: _icon, title = "Start", category: c = "other" } = registerNodes[name] ?? {};
+const ActionNode: React.FC<IProps> = ({ node, onRemove, onChange, onExpanded, isEditable = true, style, isContent = true, fullWidth = false }) => {
+	const { id, fields, isCollapsed, color: _color, icon: _icon, title = "Start", category: c = "other" } = node;
+	const { categories, layout = "vertical" } = useContext(BuilderContext);
+	const fieldsRef = useRef<INodeField[]>(fields ?? []);
+	const [show, setShow] = useState<boolean>(isCollapsed);
 	const category: string[] = Array.isArray(c) ? c : [c];
 
 	const handleNodeClick = () => {};
 
 	const toChange = () => {
-		const node: INode = {
-			id,
-			name,
-			type: "action",
-			data: {
-				...data,
-				variables: data?.variables ?? [],
-				declarations: declarationsRef.current,
-			},
-			children,
-			next,
-			isExpanded: show,
-		};
-
+		node.fields = fieldsRef.current;
+		node.collapsed = show;
 		onChange?.(node);
 	};
 
@@ -117,12 +105,12 @@ const ActionNode: React.FC<IProps> = ({ id, name, onRemove, onChange, onExpanded
 							gap: "10px",
 						}}
 					>
-						{Array.isArray(declarationsRef.current) && (
-							<RenderNodeDeclarations
+						{Array.isArray(fieldsRef.current) && (
+							<RenderNodeFields
 								id={id}
-								declarations={declarationsRef.current}
+								node={node}
 								onChange={(d) => {
-									declarationsRef.current = d;
+									fieldsRef.current = d;
 									toChange();
 								}}
 							/>

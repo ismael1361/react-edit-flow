@@ -1,12 +1,12 @@
 import { Chip, FormControl, FormHelperText, Input, InputLabel, List, ListItem, ListItemButton, ListItemText, MenuItem, OutlinedInput, Paper, Select, TextField } from "@mui/material";
 import React, { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { useId } from "../Hooks";
-import type { INodeDeclarationBase, IProps } from ".";
+import type { INodeFieldBase, IProps } from ".";
 import { createRegexRenderer, RichTextarea, RichTextareaHandle } from "rich-textarea";
 import { IVariableDefinition } from "../Types";
 import { createPortal } from "react-dom";
 import { NodeContext } from "../Contexts";
-import { variablesColors } from "./VariableDeclaration";
+import { variablesColors } from "./VariableField";
 
 export type IInputValueType = "text" | "date" | "time" | "email" | "password" | "number" | "datetime" | "boolean";
 
@@ -35,7 +35,7 @@ export type IInputValue<T extends IInputValueType> = {
 	  }
 );
 
-export type IInputProps<T extends IInputValueType = any> = INodeDeclarationBase<{
+export type IInputProps<T extends IInputValueType = any> = INodeFieldBase<{
 	type: "input";
 	label?: string;
 	value?: Partial<IInputValue<T>>;
@@ -255,7 +255,7 @@ const TextareaVariables = forwardRef<
 	);
 });
 
-const InputDeclaration: React.FC<
+const InputField: React.FC<
 	IProps<IInputProps<any>> & {
 		fullWidth?: boolean;
 		onMutate?: (value: IInputProps<any>) => void;
@@ -369,4 +369,4 @@ const InputDeclaration: React.FC<
 	);
 };
 
-export default InputDeclaration;
+export default InputField;

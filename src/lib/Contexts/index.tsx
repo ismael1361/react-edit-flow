@@ -1,8 +1,9 @@
 import React, { createContext, ReactNode, useRef } from "react";
-import type { INode, IRegisterNode, IVariableDefinition, Required } from "../Types";
+import type { IVariableDefinition, Required } from "../Types";
 import { mdiCodeBlockBraces, mdiDatabaseOutline, mdiFunction, mdiPuzzle, mdiSelectAll, mdiVariable } from "@mdi/js";
 import { useUpdate } from "../Hooks";
 import { clear } from "console";
+import RegisterNode from "../RegisterNode";
 
 export type INodeCategory = "all" | "variable" | "control" | "data" | "function" | "other";
 
@@ -61,9 +62,7 @@ export interface IFlowUiContext {
 	categories: {
 		[k in INodeCategory]: INodeStyle & { isAll?: boolean };
 	};
-	registerNodes: {
-		[k: string]: IRegisterNode;
-	};
+	registerNodes: RegisterNode[];
 	variables: Required<IVariableDefinition, "name">[];
 }
 
@@ -76,7 +75,7 @@ const defaultBuilderContext: IFlowUiContext = {
 		...categoriesList,
 	},
 	categories: categoriesList,
-	registerNodes: {},
+	registerNodes: [],
 	variables: [],
 };
 
@@ -92,17 +91,14 @@ export const BuilderProvider: React.FC<ProviderProps<IFlowUiContext>> = ({ child
 	return <BuilderContext.Provider value={contextValue}>{children}</BuilderContext.Provider>;
 };
 
-export interface INodeContext extends INode {
+export interface INodeContext {
+	node?: RegisterNode;
 	getVariables: () => Required<IVariableDefinition, "name">[];
 	defineVariable: (...variable: Required<IVariableDefinition, "name">[]) => void;
 }
 
 const defaultNodeContext: INodeContext = {
-	id: "",
-	type: "action",
-	name: "",
-	children: [],
-	variables: [],
+	node: undefined,
 	getVariables: () => [],
 	defineVariable: () => {},
 };

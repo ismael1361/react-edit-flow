@@ -6,11 +6,10 @@ import { BodyNode, OperationsNode } from "../Nodes";
 
 import "./styles.scss";
 import { BuilderContext } from "../../Contexts";
-import { INode } from "../../Types";
-import zIndex from "@mui/material/styles/zIndex";
+import RegisterNode from "../../RegisterNode";
 
 interface IProps {
-	onAdd: (node: INode) => void;
+	onAdd: (node: RegisterNode) => void;
 	isEnd?: boolean;
 	fillLine?: boolean;
 }

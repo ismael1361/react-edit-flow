@@ -60,20 +60,23 @@ const Portal: React.FC<{
 			const pos = getBoundingFragmentRect();
 			mainRef.current.style.top = `${pos.top}px`;
 			mainRef.current.style.left = `${pos.left}px`;
+			const margin = 15;
 
 			const { top, left, width, height } = mainRef.current.getBoundingClientRect();
 
 			if (left + width > window.innerWidth) {
-				mainRef.current.style.left = `${window.innerWidth - width - 15}px`;
+				mainRef.current.style.left = `${window.innerWidth - width - margin * 2}px`;
 			} else if (left < 0) {
-				mainRef.current.style.left = "15px";
+				mainRef.current.style.left = `${margin}px`;
 			}
 
 			if (top + height > window.innerHeight) {
-				mainRef.current.style.top = `${window.innerHeight - height - 15}px`;
+				mainRef.current.style.top = `${window.innerHeight - height - margin * 2}px`;
 			} else if (top < 0) {
-				mainRef.current.style.top = "15px";
+				mainRef.current.style.top = `${margin}px`;
 			}
+
+			mainRef.current.style.maxWidth = `${Math.min(400, window.innerWidth - margin * 3)}px`;
 		};
 
 		const downOutside = (e: MouseEvent) => {

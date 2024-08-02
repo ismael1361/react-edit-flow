@@ -1,36 +1,37 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { FileAnalyzer, uuidv4 } from "../../Utils";
 import { ActionNode, ConditionNode, EndNode, OperationsNode, StartNode } from "../Nodes";
 import { BuilderContext, BuilderProvider, IFlowUiContext, NodeContext, NodeProvider } from "../../Contexts";
-import { INode, INodeProps, IRegisterNode, IVariableDefinition, Required } from "../../Types";
+import { INodeProps, IVariableDefinition, Required } from "../../Types";
 import ListNodes from "../../ListNodes";
 
 import "./styles.scss";
 import { SplitLine } from "../Lines";
 import AddButton from "../AddButton";
 import { useUpdate } from "../../Hooks";
+import RegisterNode from "../../RegisterNode";
 
 interface IProps extends Partial<Omit<IFlowUiContext, "addAction" | "categories">> {
 	className?: string;
 	style?: any;
-	nodes?: INode[];
-	onChange?: (nodes: INode[]) => void;
+	nodes?: RegisterNode[];
+	onChange?: (nodes: RegisterNode[]) => void;
 }
 
-export const RenderNode: React.FC<INodeProps & { isEnd?: boolean }> = ({ onRemove, onChange, onAdd, isEnd = false, ...node }) => {
+export const RenderNode: React.FC<INodeProps & { isEnd?: boolean }> = ({ node, onRemove, onChange, onAdd, isEnd = false }) => {
 	return (
 		<React.Fragment key={node.id}>
 			{node.type === "action" ? (
 				<ActionNode
 					key={node.id}
-					{...node}
+					node={node}
 					onRemove={onRemove}
 					onChange={onChange}
 				/>
 			) : node.type === "condition" ? (
 				<ConditionNode
 					key={node.id}
-					{...node}
+					node={node}
 					onRemove={onRemove}
 					onChange={onChange}
 				/>
@@ -45,6 +46,8 @@ export const RenderNode: React.FC<INodeProps & { isEnd?: boolean }> = ({ onRemov
 	);
 };
 
+const MainNode = new RegisterNode({ name: "main", init() {} });
+
 const Build: React.FC<{
 	variables?: Required<IVariableDefinition, "name">[];
 }> = ({ variables: v = [] }) => {
@@ -52,10 +55,29 @@ const Build: React.FC<{
 	const context = React.useContext(BuilderContext) ?? {};
 	const { layout = "vertical" } = context;
 	const beforeNodes = React.useContext(NodeContext);
-	const nodes = useRef<INode[]>([]);
+	const nodeRef = useRef<RegisterNode>(MainNode.createNode());
+	const nodes = useRef<RegisterNode[]>([]);
 	const [variables, setVariables] = React.useState<Required<IVariableDefinition, "name">[]>([]);
 
-	const onAdd = (index: number) => (node: INode) => {
+	useEffect(() => {
+		nodeRef.current.children = [
+			new RegisterNode({
+				name: "start",
+				init(node) {
+					node.setType("start");
+				},
+			}),
+			...nodes.current,
+			new RegisterNode({
+				name: "end",
+				init(node) {
+					node.setType("end");
+				},
+			}),
+		];
+	}, [nodes]);
+
+	const onAdd = (index: number) => (node: RegisterNode) => {
 		const start = nodes.current.slice(0, index);
 		const end = nodes.current.slice(index);
 		nodes.current = [...start, node, ...end];
@@ -71,26 +93,7 @@ const Build: React.FC<{
 	return (
 		<NodeProvider
 			value={{
-				type: "action",
-				id: uuidv4(),
-				name: "main",
-				children: [
-					{
-						type: "start",
-						id: uuidv4(),
-						name: "start",
-						children: [],
-						variables: [],
-					},
-					...nodes.current,
-					{
-						type: "end",
-						id: uuidv4(),
-						name: "end",
-						children: [],
-						variables: [],
-					},
-				],
+				node: nodeRef.current,
 				defineVariable: () => {},
 				getVariables: () => {
 					return v.concat(beforeNodes.getVariables(), variables);
@@ -107,7 +110,7 @@ const Build: React.FC<{
 						return (
 							<RenderNode
 								key={index}
-								{...node}
+								node={node}
 								onRemove={onRemove}
 								onChange={(node) => {
 									nodes.current[index] = node;
@@ -123,7 +126,7 @@ const Build: React.FC<{
 	);
 };
 
-const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNodes = {}, variables, ...options }) => {
+const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNodes = [], variables, ...options }) => {
 	(window as any).FileAnalyzer = FileAnalyzer;
 
 	return (
@@ -133,20 +136,7 @@ const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNod
 				spaceX: 15,
 				spaceY: 15,
 				...options,
-				registerNodes: {
-					...ListNodes,
-					...Object.fromEntries(
-						Object.entries(registerNodes)
-							.filter(([key]) => {
-								return !(key in ListNodes);
-							})
-							.map(([key, value]) => {
-								value.category = value.category ?? "other";
-								value.category = Array.isArray(value.category) ? [...value.category, "other"] : [value.category];
-								return [key, value as IRegisterNode];
-							}),
-					),
-				},
+				registerNodes: [...ListNodes, ...registerNodes],
 			}}
 		>
 			<Build variables={variables} />

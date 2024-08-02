@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import type { INodeDeclarationBase } from ".";
+import type { INodeFieldBase } from ".";
 import { Box, FormControl, InputLabel, ListItemIcon, ListItemText, MenuItem, Select, TextField } from "@mui/material";
 import { useId } from "../Hooks";
 import Icon from "@mdi/react";
@@ -23,7 +23,7 @@ import {
 	mdiNumeric,
 	mdiToggleSwitchOffOutline,
 } from "@mdi/js";
-import InputDeclaration, { IInputValueType } from "./InputDeclaration";
+import InputField, { IInputValueType } from "./InputField";
 import { IVariableDefinition, Required } from "../Types";
 
 interface IVariableType {
@@ -34,7 +34,7 @@ interface IVariableType {
 	disabled?: boolean;
 }
 
-export type IVariableProps = INodeDeclarationBase<
+export type IVariableProps = INodeFieldBase<
 	Required<IVariableDefinition, "name"> & {
 		type: "variable";
 		validTypes?: IVariableType[];
@@ -106,11 +106,11 @@ const posibleTypes: IVariableType[] = [
 	},
 ];
 
-const VariableDeclaration: React.FC<
+const VariableField: React.FC<
 	IVariableProps & {
 		onMutate?: (value: Omit<IVariableProps, "validTypes">) => void;
 	}
-> = ({ validTypes = [], definition = "var", expressionType: variableType = "any", name: n = "", value: v = "", color, byId, onMutate }) => {
+> = ({ fieldName, validTypes = [], definition = "var", expressionType: variableType = "any", name: n = "", value: v = "", color, byId, onMutate }) => {
 	const types: IVariableType[] = [...posibleTypes, ...validTypes];
 	const id_01 = useId();
 	const id_02 = useId();
@@ -126,6 +126,7 @@ const VariableDeclaration: React.FC<
 
 	useEffect(() => {
 		onMutate?.({
+			fieldName,
 			type: "variable",
 			name,
 			expressionType: type as any,
@@ -293,7 +294,8 @@ const VariableDeclaration: React.FC<
 						})}
 					</Select>
 				</FormControl>
-				<InputDeclaration
+				<InputField
+					fieldName={""}
 					type={"input"}
 					label="Value"
 					value={{
@@ -318,4 +320,4 @@ const VariableDeclaration: React.FC<
 	);
 };
 
-export default VariableDeclaration;
+export default VariableField;
