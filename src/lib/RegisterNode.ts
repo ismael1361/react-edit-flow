@@ -50,8 +50,9 @@ class RegisterNode {
 	// Define o texto de dica de ferramenta do bloco.
 	tooltip: string | (() => string) = "";
 
-	readonly generator?: (this: RegisterNode, node: RegisterNode, typeCode: "javascript" | "python" | "java" | "lua" | "dart") => string;
-	readonly validate?: (this: RegisterNode, node: RegisterNode) => Array<{ type: "error" | "warning" | "info"; message: string }>;
+	readonly generator?: (this: RegisterNode, typeCode: "javascript" | "python" | "java" | "lua" | "dart") => string;
+	readonly validate?: (this: RegisterNode) => Array<{ type: "error" | "warning" | "info"; message: string }>;
+	readonly update?: (this: RegisterNode) => void;
 
 	constructor(
 		readonly options: {
@@ -59,10 +60,12 @@ class RegisterNode {
 			init: (this: RegisterNode, node: RegisterNode) => void;
 			generator?: (this: RegisterNode, node: RegisterNode, typeCode: "javascript" | "python" | "java" | "lua" | "dart") => string;
 			validate?: (this: RegisterNode, node: RegisterNode) => Array<{ type: "error" | "warning" | "info"; message: string }>;
+			update?: (this: RegisterNode, node: RegisterNode) => void;
 		},
 	) {
-		this.generator = options.generator ? options.generator.bind(this) : undefined;
-		this.validate = options.validate ? options.validate.bind(this) : undefined;
+		this.generator = options.generator ? options.generator.bind(this, this) : undefined;
+		this.validate = options.validate ? options.validate.bind(this, this) : undefined;
+		this.update = options.update ? options.update.bind(this, this) : undefined;
 
 		options.init.call(this, this);
 
@@ -279,6 +282,24 @@ class RegisterNode {
 	}
 
 	/**
+	 * Adiciona um campo de data ao bloco.
+	 * @param fieldName O nome do campo.
+	 * @param label O texto que aparece ao lado do campo.
+	 * @param value O valor padrão do campo.
+	 */
+	appendFieldDate(fieldName: string, label: string, value?: string) {
+		this.fields.push({
+			fieldName,
+			type: "input",
+			label,
+			value: {
+				type: "date",
+				default: value,
+			},
+		});
+	}
+
+	/**
 	 * Adiciona um campo de seleção ao bloco.
 	 * @param fieldName O nome do campo.
 	 * @param items Os itens que aparecem no campo.
@@ -303,6 +324,14 @@ class RegisterNode {
 	 * @param alt O texto alternativo da imagem.
 	 */
 	appendFieldImage(src: string, width: string | number, height: string | number, alt?: string) {}
+
+	/**
+	 * Obtenha os campos do bloco.
+	 * @returns Os campos do bloco.
+	 */
+	getFields() {
+		return this.fields.filter(({ hidden = false }) => !hidden);
+	}
 
 	/**
 	 * Obtenha um campo.
@@ -331,6 +360,28 @@ class RegisterNode {
 	getFieldValue(fieldName: string) {
 		const { value } = this.fields.find((field) => field.fieldName === fieldName) ?? {};
 		return value ?? null;
+	}
+
+	/**
+	 * Ocultar um campo.
+	 * @param fieldName O nome do campo.
+	 */
+	hideField(fieldName: string) {
+		const index = this.fields.findIndex((field) => field.fieldName === fieldName);
+		if (index >= 0) {
+			this.fields[index].hidden = true;
+		}
+	}
+
+	/**
+	 * Exibir um campo.
+	 * @param fieldName O nome do campo.
+	 */
+	showField(fieldName: string) {
+		const index = this.fields.findIndex((field) => field.fieldName === fieldName);
+		if (index >= 0) {
+			this.fields[index].hidden = false;
+		}
 	}
 
 	/**

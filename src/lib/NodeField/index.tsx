@@ -16,6 +16,7 @@ export type INodeFieldBase<P extends Object> = {
 	type: string;
 	fieldName: string;
 	value?: any;
+	hidden?: boolean;
 	tryOut?: (props: P) => Log | Log[];
 	onChange?: (props: P) => P;
 } & P;
@@ -34,7 +35,7 @@ const RenderNodeFields: React.FC<{
 		time.current = setTimeout(() => {
 			log.clear();
 			if (typeof node.validate === "function") {
-				const erros = node.validate(node);
+				const erros = node.validate();
 				(Array.isArray(erros) ? erros : [erros]).forEach(({ type, message }) => {
 					log[type](message);
 				});
@@ -50,6 +51,8 @@ const RenderNodeFields: React.FC<{
 				fieldsRef.current[index] = (fieldsRef.current[index] as any).onChange(fieldsRef.current[index]);
 			}
 			onChange?.(fieldsRef.current);
+			node.update?.();
+			fieldsRef.current = node.getFields();
 			verify();
 		}, 100);
 	};
