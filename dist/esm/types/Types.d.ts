@@ -1,29 +1,23 @@
-import React from "react";
-import type { INodeField } from "./NodeDeclaration";
-import type { INodeCategory } from "./Contexts";
+import type { INodeField } from "./NodeField";
+import RegisterNode from "./RegisterNode";
 export { INodeField };
-export type INodeType = "start" | "end" | "condition" | "action" | "branch" | "loop";
-export interface INode {
-	id: string;
-	type: INodeType;
-	name: string;
-	data?: any;
-	children?: INode[];
-	next?: string[];
-	[key: string]: any;
+export type Optional<T extends Object, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+export type Required<T extends Object, K extends keyof T> = Pick<T, K> & Partial<Omit<T, K>>;
+export interface INodeProps {
+    node: RegisterNode;
+    onAdd?: (node: RegisterNode) => void;
+    onChange?: (node: RegisterNode) => void;
+    onRemove?: (id: string) => void;
+    onExpanded?: (expanded: boolean) => void;
+    isContent?: boolean;
 }
-export interface IRegisterNode {
-	type: INodeType;
-	title: string;
-	category?: INodeCategory | INodeCategory[];
-	icon?: React.ReactNode;
-	color?: string;
-	declarations?: INodeField[];
-	onCall?: (node: INodeField[]) => void;
-	keys?: string[];
-}
-export interface INodeProps extends INode {
-	onAdd?: (node: INode) => void;
-	onChange?: (node: INode) => void;
-	onRemove?: (id: string) => void;
+export interface IVariableDefinition {
+    name: string;
+    expressionType: ("string" | "number" | "boolean" | "any" | "unknown" | "Function" | "Object" | "Array" | "Date") & string;
+    default?: string | number | boolean;
+    value?: string | number | boolean;
+    isConstant: boolean;
+    definition: "var" | "let" | "const";
+    color: string;
+    byId?: string;
 }

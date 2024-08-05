@@ -1,5 +1,3 @@
-import { IRegisterNode } from "../Types";
-declare const ListNodes: {
-    [k: string]: IRegisterNode;
-};
+import RegisterNode from "../RegisterNode";
+declare const ListNodes: RegisterNode[];
 export default ListNodes;

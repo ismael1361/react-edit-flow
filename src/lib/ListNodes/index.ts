@@ -21,7 +21,7 @@ ListNodes.push(
 			this.setType("action");
 			this.setTitle("Initialize Variable");
 			this.setCategory("variable");
-			this.appendFieldVariable("variable", "");
+			this.appendFieldVariable("variable");
 			this.setKeys(["variable", "initialize", "var", "let", "const"]);
 		},
 		validate() {

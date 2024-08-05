@@ -8,6 +8,12 @@ interface IProps {
         icon: ReactNode;
         action: () => void;
     }>>;
+    tools?: Array<{
+        label: string;
+        icon: ReactNode;
+        action: () => void;
+        disabled?: boolean;
+    }>;
     onClick?: () => void;
 }
 declare const HeaderNode: React.FC<Partial<IProps>>;

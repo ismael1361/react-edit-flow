@@ -45,3 +45,14 @@ export const cloneValue = <T>(obj: T, seen: Map<any, any> = new Map()): T => {
 
 	return obj;
 };
+
+export const joinObjects = <T extends Object>(...objects: T[]): T => {
+	return objects.reduce((acc, obj) => {
+		for (let key in obj) {
+			const value = obj[key];
+			const beffore = acc[key];
+			(acc as any)[key] = ["[object Object]", "[object Array]"].includes(Object.prototype.toString.call(value)) ? joinObjects((acc as any)[key], value) : value ?? beffore;
+		}
+		return acc;
+	}, {} as T);
+};

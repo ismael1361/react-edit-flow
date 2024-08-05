@@ -1,7 +1,7 @@
 import React from "react";
-import { INode } from "../../Types";
+import RegisterNode from "../../RegisterNode";
 interface IProps {
-    onAdd: (node: INode) => void;
+    onAdd: (node: RegisterNode) => void;
 }
 declare const StartNode: React.FC<Partial<IProps>>;
 export default StartNode;

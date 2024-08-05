@@ -50,8 +50,9 @@ const RenderNodeFields: React.FC<{
 			if (typeof fieldsRef.current[index].onChange === "function") {
 				fieldsRef.current[index] = (fieldsRef.current[index] as any).onChange(fieldsRef.current[index]);
 			}
-			onChange?.(fieldsRef.current);
+			node.fields = fieldsRef.current;
 			node.update?.();
+			onChange?.(fieldsRef.current);
 			fieldsRef.current = node.getFields();
 			verify();
 		}, 100);

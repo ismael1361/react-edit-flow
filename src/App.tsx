@@ -22,10 +22,25 @@ registerNodes.push(
 	}),
 );
 
+const flow = [
+	{ name: "start", id: "0aceb982-dcfb-47e5-a4eb-8461cf5e2bba", children: [], fields: {} },
+	{
+		name: "variable-initialize",
+		id: "dfdbeee4-7f55-425b-bb14-01e7aaf5d302",
+		children: [],
+		fields: {
+			variable: { name: "variable01", definition: "var", value: "Hello World!", expressionType: "string" },
+		},
+	},
+	{ name: "end", id: "53fedef2-75ee-4ccf-93a8-fc5c9da11880", children: [], fields: {} },
+];
+
 function App() {
 	return (
 		<div className="App">
 			<ReactFlowUI
+				flow={flow}
+				onChange={(flow) => console.log(flow)}
 				layout="vertical"
 				variables={[
 					{

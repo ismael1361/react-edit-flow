@@ -3,7 +3,7 @@ import type { IVariableDefinition, Required } from "../Types";
 import { mdiCodeBlockBraces, mdiDatabaseOutline, mdiFunction, mdiPuzzle, mdiSelectAll, mdiVariable } from "@mdi/js";
 import { useUpdate } from "../Hooks";
 import { clear } from "console";
-import RegisterNode from "../RegisterNode";
+import RegisterNode, { RegisterNodeJSON } from "../RegisterNode";
 
 export type INodeCategory = "all" | "variable" | "control" | "data" | "function" | "other";
 

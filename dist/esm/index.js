@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mdiSelectAll, mdiVariable, mdiCodeBlockBraces, mdiDatabaseOutline, mdiFunction, mdiPuzzle, mdiPlusCircle, mdiCircle, mdiMapMarker, mdiStarFourPointsCircle, mdiArrowExpandDown, mdiClose, mdiMagnify, mdiToggleSwitchOffOutline } from '@mdi/js';
-import { TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import React, { useState, createContext, useRef, useContext, useEffect, forwardRef, useImperativeHandle, useMemo, useCallback, useLayoutEffect, memo } from 'react';
+import { mdiSelectAll, mdiVariable, mdiCodeBlockBraces, mdiDatabaseOutline, mdiFunction, mdiPuzzle, mdiPlusCircle, mdiCircle, mdiAlertOctagon, mdiAlert, mdiAlertCircleOutline, mdiDotsHorizontal, mdiMapMarker, mdiStarFourPointsCircle, mdiArrowExpandDown, mdiClose, mdiMagnify, mdiAlphaVBoxOutline, mdiAlphaLBox, mdiAlphaCCircle, mdiInformationSymbol, mdiAlphaA, mdiAlphabeticalVariant, mdiNumeric, mdiToggleSwitchOffOutline, mdiCalendar, mdiCodeBraces, mdiCodeBrackets, mdiUnfoldLessHorizontal, mdiUnfoldMoreHorizontal, mdiPencil, mdiDelete, mdiCheckCircle, mdiCloseCircle } from '@mdi/js';
+import { Paper, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Alert, TextField, Box, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
+import { createPortal } from 'react-dom';
 
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
@@ -13941,7 +13942,7 @@ class Parser extends StatementParser {
     return file;
   }
 }
-function parse(input, options) {
+function parse$1(input, options) {
   var _options;
   if (((_options = options) == null ? void 0 : _options.sourceType) === "unambiguous") {
     options = Object.assign({}, options);
@@ -14026,7 +14027,7 @@ function getParserClass(pluginsMap) {
   }
   return cls;
 }
-var parse_1 = lib.parse = parse;
+var parse_1 = lib.parse = parse$1;
 lib.parseExpression = parseExpression;
 lib.tokTypes = tokTypes;
 
@@ -14151,14 +14152,204 @@ const analyzeJavaScript = (code) => {
     return scope;
 };
 
+let hsvSaturation = 0.45;
+function getHsvSaturation() {
+    return hsvSaturation;
+}
+let hsvValue = 0.65;
+function getHsvValue() {
+    return hsvValue;
+}
+const colourNames = {
+    aqua: "#00ffff",
+    black: "#000000",
+    blue: "#0000ff",
+    fuchsia: "#ff00ff",
+    gray: "#808080",
+    green: "#008000",
+    lime: "#00ff00",
+    maroon: "#800000",
+    navy: "#000080",
+    olive: "#808000",
+    purple: "#800080",
+    red: "#ff0000",
+    silver: "#c0c0c0",
+    teal: "#008080",
+    white: "#ffffff",
+    yellow: "#ffff00",
+};
+function parse(str) {
+    str = `${str}`.toLowerCase().trim();
+    let hex = colourNames[str];
+    if (hex) {
+        // e.g. 'red'
+        return hex;
+    }
+    hex = str.substring(0, 2) === "0x" ? "#" + str.substring(2) : str;
+    hex = hex[0] === "#" ? hex : "#" + hex;
+    if (/^#[0-9a-f]{6}$/.test(hex)) {
+        // e.g. '#00ff88'
+        return hex;
+    }
+    if (/^#[0-9a-f]{3}$/.test(hex)) {
+        // e.g. '#0f8'
+        return ["#", hex[1], hex[1], hex[2], hex[2], hex[3], hex[3]].join("");
+    }
+    const rgb = str.match(/^(?:rgb)?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+    if (rgb) {
+        // e.g. 'rgb(0, 128, 255)'
+        const r = Number(rgb[1]);
+        const g = Number(rgb[2]);
+        const b = Number(rgb[3]);
+        if (r >= 0 && r < 256 && g >= 0 && g < 256 && b >= 0 && b < 256) {
+            return rgbToHex(r, g, b);
+        }
+    }
+    return null;
+}
+function rgbToHex(r, g, b) {
+    const rgb = (r << 16) | (g << 8) | b;
+    if (r < 0x10) {
+        return "#" + (0x1000000 | rgb).toString(16).substr(1);
+    }
+    return "#" + rgb.toString(16);
+}
+function rgbToHsv(r, g, b) {
+    const red = r / 255;
+    const green = g / 255;
+    const blue = b / 255;
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    const delta = max - min;
+    let h = 0;
+    let s = 0;
+    const v = max;
+    if (max !== 0) {
+        s = delta / max;
+        if (red === max) {
+            h = (green - blue) / delta;
+        }
+        else if (green === max) {
+            h = 2 + (blue - red) / delta;
+        }
+        else {
+            h = 4 + (red - green) / delta;
+        }
+        h *= 60;
+        if (h < 0) {
+            h += 360;
+        }
+    }
+    return { h, s, v };
+}
+function hexToRgb(colour) {
+    const hex = parse(colour);
+    if (!hex) {
+        return { r: 0, g: 0, b: 0 };
+    }
+    const rgb = parseInt(hex.substr(1), 16);
+    const r = rgb >> 16;
+    const g = (rgb >> 8) & 255;
+    const b = rgb & 255;
+    return { r, g, b };
+}
+function hsvToHex(h, s, v) {
+    let red = 0;
+    let green = 0;
+    let blue = 0;
+    {
+        const sextant = Math.floor(h / 60);
+        const remainder = h / 60 - sextant;
+        const val1 = v * (1 - s);
+        const val2 = v * (1 - s * remainder);
+        const val3 = v * (1 - s * (1 - remainder));
+        switch (sextant) {
+            case 1:
+                red = val2;
+                green = v;
+                blue = val1;
+                break;
+            case 2:
+                red = val1;
+                green = v;
+                blue = val3;
+                break;
+            case 3:
+                red = val1;
+                green = val2;
+                blue = v;
+                break;
+            case 4:
+                red = val3;
+                green = val1;
+                blue = v;
+                break;
+            case 5:
+                red = v;
+                green = val1;
+                blue = val2;
+                break;
+            case 6:
+            case 0:
+                red = v;
+                green = val3;
+                blue = val1;
+                break;
+        }
+    }
+    return rgbToHex(Math.floor(red), Math.floor(green), Math.floor(blue));
+}
+function parseBlockColour(colour = 240) {
+    if (typeof colour === "string") {
+        if (/^rgb\((\d+), (\d+), (\d+)\)$/.test(colour)) {
+            const [_, r, g, b] = colour.match(/rgb\((\d+), (\d+), (\d+)\)/) || [];
+            return {
+                hue: rgbToHsv(parseInt(r), parseInt(g), parseInt(b)).h,
+                hex: rgbToHex(parseInt(r), parseInt(g), parseInt(b)),
+            };
+        }
+        else {
+            const { r, g, b } = hexToRgb(colour);
+            return {
+                hue: rgbToHsv(r, g, b).h,
+                hex: colour,
+            };
+        }
+    }
+    colour = typeof colour === "string" ? parseInt(colour) : colour;
+    return {
+        hue: colour,
+        hex: hsvToHex(colour / 360, getHsvSaturation(), getHsvValue() * 255),
+    };
+}
+
 const uuidv4 = () => {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
         var r = (Math.random() * 16) | 0, v = c === "x" ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
 };
+const joinObjects = (...objects) => {
+    return objects.reduce((acc, obj) => {
+        for (let key in obj) {
+            const value = obj[key];
+            const beffore = acc[key];
+            acc[key] = ["[object Object]", "[object Array]"].includes(Object.prototype.toString.call(value)) ? joinObjects(acc[key], value) : value !== null && value !== void 0 ? value : beffore;
+        }
+        return acc;
+    }, {});
+};
 
-const categories = {
+const useId = () => {
+    const [id, setId] = useState(uuidv4());
+    return id;
+};
+const useUpdate = () => {
+    const [_, update] = useState(0);
+    return () => update((p) => p + 1);
+};
+
+const categoriesList = {
     all: {
         color: "#546e7a",
         icon: mdiSelectAll,
@@ -14186,7 +14377,7 @@ const categories = {
         title: "Function",
     },
     other: {
-        color: "#263238",
+        color: "#00796b",
         icon: mdiPuzzle,
         title: "Other",
     },
@@ -14196,9 +14387,11 @@ const defaultBuilderContext = {
     lineColor: "black",
     spaceX: 25,
     spaceY: 25,
-    nodeStyle: Object.assign({}, categories),
-    categories,
-    registerNodes: {},
+    grid: {},
+    nodeStyle: Object.assign({}, categoriesList),
+    categories: categoriesList,
+    registerNodes: [],
+    variables: [],
 };
 const BuilderContext = createContext(defaultBuilderContext);
 const BuilderProvider = ({ children, value }) => {
@@ -14206,26 +14399,58 @@ const BuilderProvider = ({ children, value }) => {
     return React.createElement(BuilderContext.Provider, { value: contextValue }, children);
 };
 const defaultNodeContext = {
-    id: "",
-    type: "action",
-    name: "",
-    data: {},
-    children: [],
-    addAction: () => { },
+    node: undefined,
+    getVariables: () => [],
+    defineVariable: () => { },
 };
-React.createContext(defaultNodeContext);
+const NodeContext = React.createContext(defaultNodeContext);
+const NodeProvider = ({ children, value }) => {
+    const contextValue = Object.assign(Object.assign({}, defaultNodeContext), value);
+    return React.createElement(NodeContext.Provider, { value: contextValue }, children);
+};
+const NodeLogsContext = React.createContext({
+    logs: [],
+    error: () => { },
+    warning: () => { },
+    info: () => { },
+    clear: () => { },
+});
+const NodeLogsProvider = ({ children }) => {
+    const update = useUpdate();
+    const logsRef = useRef([]);
+    const time = useRef();
+    const byLog = (type) => (message = "") => {
+        clearTimeout(time.current);
+        logsRef.current.push({ type, message });
+        time.current = setTimeout(() => {
+            update();
+        }, 100);
+    };
+    return (React.createElement(NodeLogsContext.Provider, { value: {
+            logs: logsRef.current,
+            error: byLog("error"),
+            warning: byLog("warning"),
+            info: byLog("info"),
+            clear: () => {
+                logsRef.current = [];
+                update();
+            },
+        } }, children));
+};
 
-const SplitLine = ({ className = "", style }) => {
+const SplitLine = ({ className = "", style, minSpace = 0 }) => {
     const { layout, lineColor, spaceX, spaceY } = useContext(BuilderContext);
-    return (React.createElement("div", { className: `flow-ui-line__split ${className}`, style: Object.assign({ backgroundColor: lineColor, width: `${layout === "vertical" ? 2 : spaceX}px`, height: `${layout === "vertical" ? spaceY : 2}px` }, style) }));
+    return (React.createElement("div", { className: `flow-ui-line__split ${className}`, style: Object.assign({ backgroundColor: lineColor, width: `${layout === "vertical" ? 2 : Math.max(minSpace, spaceX)}px`, minWidth: `${layout === "vertical" ? 2 : Math.max(minSpace, spaceX)}px`, height: `${layout === "vertical" ? Math.max(minSpace, spaceY) : 2}px`, minHeight: `${layout === "vertical" ? Math.max(minSpace, spaceY) : 2}px` }, style) }));
 };
 
 const FillLine = ({}) => {
-    const { layout, lineColor } = useContext(BuilderContext);
+    const { layout, lineColor, spaceX, spaceY } = useContext(BuilderContext);
     return (React.createElement("div", { className: "flow-ui-line__fill", style: {
             backgroundColor: lineColor,
             width: layout === "vertical" ? "2px" : "100%",
+            minWidth: layout === "vertical" ? "auto" : `${spaceX}px`,
             height: layout === "vertical" ? "100%" : "2px",
+            minHeight: layout === "vertical" ? `${spaceY}px` : "auto",
         } }));
 };
 
@@ -15438,17 +15663,29 @@ var Icon=function(e){var t={};function r(n){if(t[n])return t[n].exports;var o=t[
 
 var Icon$1 = /*@__PURE__*/getDefaultExportFromCjs(Icon);
 
-const AddButton = ({ onAdd }) => {
+const AddButton = ({ onAdd, isEnd = false, fillLine = false }) => {
     const [showOperations, setShowOperations] = React.useState(false);
-    const { lineColor } = useContext(BuilderContext);
+    let { lineColor, layout, spaceX, spaceY } = useContext(BuilderContext);
+    const size = 20;
+    const width = layout === "vertical" ? 100 : spaceX * 2 + size;
+    const height = layout === "horizontal" ? 40 : spaceY * 2 + size;
     return (React.createElement(React.Fragment, null,
         !showOperations && (React.createElement("div", { className: "flow-ui-node_item", onClick: () => {
                 setShowOperations(true);
-            }, style: { minWidth: "100px" } },
-            React.createElement(BodyNode, { className: "low-ui-node__content flow-ui-node__add", style: {
-                    borderColor: lineColor,
-                    borderStyle: "dashed",
-                    padding: "0px",
+            }, style: {
+                minWidth: `${width}px`,
+                minHeight: `${height}px`,
+                marginTop: layout === "vertical" ? `${spaceY * -1}px` : undefined,
+                marginBottom: layout === "vertical" ? `${spaceY * -1}px` : undefined,
+                marginLeft: layout === "horizontal" ? `${spaceX * -1}px` : undefined,
+                marginRight: layout === "horizontal" ? `${spaceX * -1}px` : undefined,
+                backgroundColor: "transparent",
+                zIndex: 1,
+                borderRadius: 0,
+            } },
+            React.createElement(BodyNode, { className: `low-ui-node__content flow-ui-node__add ${isEnd ? "flow-ui-node__add__end" : ""}`, style: {
+                    "--lineColor": lineColor,
+                    "borderColor": lineColor,
                 } },
                 React.createElement(Icon$1, { className: "flow-ui-node__add__icon", path: mdiPlusCircle, size: 1, color: lineColor })))),
         showOperations && (React.createElement(OperationsNode, { onClone: () => {
@@ -15456,10 +15693,120 @@ const AddButton = ({ onAdd }) => {
             }, onAdd: (node) => {
                 onAdd === null || onAdd === void 0 ? void 0 : onAdd(node);
             } })),
-        React.createElement(SplitLine, null)));
+        fillLine ? React.createElement(FillLine, null) : React.createElement(SplitLine, null)));
 };
 
-const HeaderNode = ({ children, icon, color = "#757575", actions = [], onClick }) => {
+const Portal = ({ reference, position = "bottom", onClosed, children, show }) => {
+    const mainRef = useRef(null);
+    const getBoundingFragmentRect = () => {
+        if (!reference || !reference.getBoundingClientRect)
+            return { top: 0, left: 0, width: 0, height: 0 };
+        let { top, left, width, height } = reference.getBoundingClientRect();
+        if (position === "top") {
+            top = top;
+            left = left + width / 2;
+        }
+        else if (position === "bottom") {
+            top = top + height;
+            left = left + width / 2;
+        }
+        else if (position === "left") {
+            top = top + height / 2;
+            left = left;
+        }
+        else if (position === "right") {
+            top = top + height / 2;
+            left = left + width;
+        }
+        else if (position === "center") {
+            top = top + height / 2;
+            left = left + width / 2;
+        }
+        return {
+            top,
+            left,
+            width,
+            height,
+        };
+    };
+    useEffect(() => {
+        const reposition = () => {
+            if (!mainRef.current)
+                return;
+            const pos = getBoundingFragmentRect();
+            mainRef.current.style.top = `${pos.top}px`;
+            mainRef.current.style.left = `${pos.left}px`;
+            const margin = 15;
+            const { top, left, width, height } = mainRef.current.getBoundingClientRect();
+            if (left + width > window.innerWidth) {
+                mainRef.current.style.left = `${window.innerWidth - width - margin * 2}px`;
+            }
+            else if (left < 0) {
+                mainRef.current.style.left = `${margin}px`;
+            }
+            if (top + height > window.innerHeight) {
+                mainRef.current.style.top = `${window.innerHeight - height - margin * 2}px`;
+            }
+            else if (top < 0) {
+                mainRef.current.style.top = `${margin}px`;
+            }
+            mainRef.current.style.maxWidth = `${Math.min(400, window.innerWidth - margin * 3)}px`;
+        };
+        const downOutside = (e) => {
+            if (mainRef.current && !mainRef.current.contains(e.target)) {
+                document.removeEventListener("mousedown", downOutside);
+                onClosed === null || onClosed === void 0 ? void 0 : onClosed();
+                return;
+            }
+            reposition();
+        };
+        document.addEventListener("mousedown", downOutside);
+        window.addEventListener("scroll", reposition);
+        window.addEventListener("resize", reposition);
+        reposition();
+        return () => {
+            document.removeEventListener("mousedown", downOutside);
+            window.removeEventListener("scroll", reposition);
+            window.removeEventListener("resize", reposition);
+        };
+    }, [show, reference, mainRef.current]);
+    const { top, left } = getBoundingFragmentRect();
+    return (React.createElement(React.Fragment, null, show &&
+        createPortal(React.createElement(Paper, { ref: mainRef, sx: {
+                position: "fixed",
+                top: top,
+                left: left,
+                zIndex: 9999,
+                width: "max-content",
+                minWidth: 200,
+                maxWidth: 400,
+                overflow: "hidden",
+            }, elevation: 5 }, children), document.body)));
+};
+const ContextMenu = ({ items, show, onClosed, reference, position = "bottom" }) => {
+    return (React.createElement(Portal, { show: show, reference: reference, position: position, onClosed: onClosed },
+        React.createElement(List, { sx: {
+                width: "100%",
+            } }, items.map((item, i, self) => (React.createElement(ListItem, { key: i, onMouseDown: (e) => {
+                e.preventDefault();
+                if (item.disabled) {
+                    return;
+                }
+                item === null || item === void 0 ? void 0 : item.action();
+                onClosed === null || onClosed === void 0 ? void 0 : onClosed();
+            }, disablePadding: true },
+            React.createElement(ListItemButton, { sx: { py: 0, minHeight: 32 }, disabled: item.disabled },
+                item.icon && (React.createElement(ListItemIcon, { sx: { minWidth: 35 } }, typeof item.icon !== "string" ? (item.icon) : (React.createElement(Icon$1, { path: typeof item.icon === "string" ? item.icon : mdiCircle, size: "25px" })))),
+                React.createElement(ListItemText, { primary: item.component, primaryTypographyProps: { fontSize: 14, fontWeight: "medium" } }))))))));
+};
+
+const HeaderNode = ({ children, icon, color = "#757575", actions = [], tools = [], onClick }) => {
+    const logRef = React.useRef(null);
+    const toolsRef = React.useRef(null);
+    const [showLogs, setShowLogs] = React.useState(false);
+    const [showTools, setShowTools] = React.useState(false);
+    const { logs } = useContext(NodeLogsContext);
+    const typeLog = logs.findIndex((log) => log.type === "error") !== -1 ? "error" : logs.findIndex((log) => log.type === "warning") !== -1 ? "warning" : "info";
     return (React.createElement("div", { className: "flow-ui-node__header" },
         React.createElement("div", { className: "flow-ui-node__header__background", style: {
                 backgroundColor: color,
@@ -15471,14 +15818,31 @@ const HeaderNode = ({ children, icon, color = "#757575", actions = [], onClick }
                     backgroundColor: color,
                 } }, icon && typeof icon !== "string" ? icon : React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiPuzzle })),
             React.createElement("div", { className: "flow-ui-node__header__title" }, children)),
+        logs.length > 0 && (React.createElement("div", { className: "flow-ui-node__header__action", onClick: () => {
+                setShowLogs(true);
+            }, title: "Logs", ref: logRef },
+            React.createElement(Icon$1, { path: typeLog === "error" ? mdiAlertOctagon : typeLog === "warning" ? mdiAlert : mdiAlertCircleOutline, size: 1, color: typeLog === "error" ? "#c62828" : typeLog === "warning" ? "#e65100" : "rgba(0, 0, 0, .6)" }))),
         actions.map(({ action, icon, label }, index) => {
             return (React.createElement("div", { key: index, className: "flow-ui-node__header__action", onClick: action, title: label }, icon && typeof icon !== "string" ? icon : React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiCircle })));
-        })));
-};
-
-const useId = () => {
-    const [id, setId] = useState(uuidv4());
-    return id;
+        }),
+        tools.length > 0 && (React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "flow-ui-node__header__action", ref: toolsRef, onClick: () => {
+                    setShowTools(true);
+                } },
+                React.createElement(Icon$1, { path: mdiDotsHorizontal })),
+            React.createElement(ContextMenu, { show: showTools, onClosed: () => {
+                    setShowTools(false);
+                }, items: tools.map((item) => {
+                    return Object.assign(Object.assign({}, item), { component: item.label });
+                }), reference: toolsRef.current }))),
+        React.createElement(Portal, { show: showLogs, reference: logRef.current, onClosed: () => {
+                setShowLogs(false);
+            } }, logs.map(({ message, type }, i) => {
+            return (React.createElement(Alert, { key: i, severity: type, style: {
+                    borderTop: i !== 0 ? "1px solid rgba(0, 0, 0, .1)" : undefined,
+                    borderRadius: 0,
+                } }, message));
+        }))));
 };
 
 const StartNode = ({ onAdd }) => {
@@ -15488,7 +15852,7 @@ const StartNode = ({ onAdd }) => {
     const { color = "#2196F3", icon, title = "Start" } = (_a = nodeStyle.start) !== null && _a !== void 0 ? _a : {};
     const handleNodeClick = () => { };
     return (React.createElement("div", { className: `flow-ui-node flow-ui-start-node` },
-        React.createElement("div", { className: "flow-ui-node_item flow-ui-node__content win2dp radius5", onClick: handleNodeClick, style: { minWidth: "0px" } },
+        React.createElement("div", { className: "flow-ui-node_item flow-ui-node__content win2dp radius5", onClick: handleNodeClick, style: { minWidth: "110px" } },
             React.createElement(HeaderNode, { icon: icon && typeof icon !== "string" ? (icon) : (React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiMapMarker, size: 1 })), color: color }, title)),
         React.createElement(SplitLine, null),
         React.createElement(AddButton, { onAdd: onAdd })));
@@ -15498,10 +15862,10 @@ const EndNode = () => {
     var _a;
     useId();
     const { nodeStyle } = useContext(BuilderContext);
-    const { color = "#f44336", icon, title = "End" } = (_a = nodeStyle.end) !== null && _a !== void 0 ? _a : {};
+    const { color = "#9c27b0", icon, title = "End" } = (_a = nodeStyle.end) !== null && _a !== void 0 ? _a : {};
     const handleNodeClick = () => { };
     return (React.createElement("div", { className: `flow-ui-node flow-ui-end-node` },
-        React.createElement("div", { className: "flow-ui-node_item flow-ui-node__content win2dp radius5", onClick: handleNodeClick, style: { minWidth: "0px" } },
+        React.createElement("div", { className: "flow-ui-node_item flow-ui-node__content win2dp radius5", onClick: handleNodeClick, style: { minWidth: "110px" } },
             React.createElement(HeaderNode, { icon: icon && typeof icon !== "string" ? (icon) : (React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiStarFourPointsCircle, size: 1 })), color: color }, title))));
 };
 
@@ -15525,7 +15889,7 @@ const OperationsNode = ({ onClone, onAdd }) => {
         }
     }, [search]);
     return (React.createElement("div", { className: `flow-ui-node` },
-        React.createElement("div", { className: "flow-ui-node_item flow-ui-node__content win2dp radius5", onClick: handleNodeClick, style: { minWidth: "600px" } },
+        React.createElement("div", { className: "flow-ui-node_item flow-ui-node__content win2dp radius5", onClick: handleNodeClick, style: { minWidth: "400px" } },
             React.createElement(HeaderNode, { icon: icon && typeof icon !== "string" ? (icon) : (React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiArrowExpandDown, size: 1 })), color: color, actions: [
                     {
                         icon: (React.createElement(Icon$1, { path: mdiClose, size: 1 })),
@@ -15555,29 +15919,24 @@ const OperationsNode = ({ onClone, onAdd }) => {
                             } }, icon && typeof icon !== "string" ? icon : React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiPuzzle })),
                         React.createElement("div", { className: "flow-ui-node_operations_tap_title" }, title)));
                 })),
-                React.createElement("div", { className: "flow-ui-node_operations_list" }, Object.entries(registerNodes).map(([nodeId, { icon, color, category: c = "other", title = "", keys = [], type }], index) => {
-                    var _a, _b, _c;
-                    const category = Array.isArray(c) ? c : [c];
+                React.createElement("div", { className: "flow-ui-node_operations_list" }, registerNodes.map((node, index) => {
+                    var _a, _b, _c, _d, _e;
+                    // { icon, color, category: c = "other", title = "", keys = [], operable = true }
+                    const category = Array.isArray(node.category) ? node.category : [node.category];
                     const [selectId, selectItem] = (_a = Object.entries(categories)[typeList]) !== null && _a !== void 0 ? _a : ["", {}];
                     const validSearch = search.trim() !== "" &&
                         (title.trim().toLowerCase().search(search.trim().toLowerCase()) >= 0 ||
-                            keys.findIndex((key) => key.trim().toLowerCase().search(search.trim().toLowerCase()) >= 0) >= 0);
-                    if (!(selectItem.isAll || category.includes(selectId) || validSearch)) {
+                            node.keys.findIndex((key) => key.trim().toLowerCase().search(search.trim().toLowerCase()) >= 0) >= 0);
+                    if (!node.operable || !(selectItem.isAll || category.includes(selectId) || validSearch)) {
                         return null;
                     }
-                    if (Array.isArray(category) && category[0] in categories && !color) {
-                        color = (_c = (_b = categories[category[0]]) === null || _b === void 0 ? void 0 : _b.color) !== null && _c !== void 0 ? _c : color;
+                    let { color, icon } = node;
+                    if (Array.isArray(category) && category[0] in categories) {
+                        color = !color ? (_c = (_b = categories[category[0]]) === null || _b === void 0 ? void 0 : _b.color) !== null && _c !== void 0 ? _c : color : color;
+                        icon = !icon ? (_e = (_d = categories[category[0]]) === null || _d === void 0 ? void 0 : _d.icon) !== null && _e !== void 0 ? _e : icon : icon;
                     }
-                    const nodeInfo = {
-                        id: uuidv4(),
-                        name: nodeId,
-                        type,
-                        data: {},
-                        children: [],
-                        next: [],
-                    };
                     return (React.createElement("div", { key: index, onClick: () => {
-                            onAdd === null || onAdd === void 0 ? void 0 : onAdd(nodeInfo);
+                            onAdd === null || onAdd === void 0 ? void 0 : onAdd(node.createNode());
                             onClone === null || onClone === void 0 ? void 0 : onClone();
                         } },
                         React.createElement("div", { className: "flow-ui-node_operation_icon", style: {
@@ -15587,107 +15946,2514 @@ const OperationsNode = ({ onClone, onAdd }) => {
                 }))))));
 };
 
-const Input = ({ type, required = false, label, value, autoComplete, helperText, disabled, multiline, rows, placeholder }) => {
+var jsxRuntime = {exports: {}};
+
+var reactJsxRuntime_production_min = {};
+
+/**
+ * @license React
+ * react-jsx-runtime.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactJsxRuntime_production_min;
+
+function requireReactJsxRuntime_production_min () {
+	if (hasRequiredReactJsxRuntime_production_min) return reactJsxRuntime_production_min;
+	hasRequiredReactJsxRuntime_production_min = 1;
+var f=React,k=Symbol.for("react.element"),l=Symbol.for("react.fragment"),m=Object.prototype.hasOwnProperty,n=f.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner,p={key:!0,ref:!0,__self:!0,__source:!0};
+	function q(c,a,g){var b,d={},e=null,h=null;void 0!==g&&(e=""+g);void 0!==a.key&&(e=""+a.key);void 0!==a.ref&&(h=a.ref);for(b in a)m.call(a,b)&&!p.hasOwnProperty(b)&&(d[b]=a[b]);if(c&&c.defaultProps)for(b in a=c.defaultProps,a)void 0===d[b]&&(d[b]=a[b]);return {$$typeof:k,type:c,key:e,ref:h,props:d,_owner:n.current}}reactJsxRuntime_production_min.Fragment=l;reactJsxRuntime_production_min.jsx=q;reactJsxRuntime_production_min.jsxs=q;
+	return reactJsxRuntime_production_min;
+}
+
+var reactJsxRuntime_development = {};
+
+/**
+ * @license React
+ * react-jsx-runtime.development.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
+var hasRequiredReactJsxRuntime_development;
+
+function requireReactJsxRuntime_development () {
+	if (hasRequiredReactJsxRuntime_development) return reactJsxRuntime_development;
+	hasRequiredReactJsxRuntime_development = 1;
+
+	if (process.env.NODE_ENV !== "production") {
+	  (function() {
+
+	var React$1 = React;
+
+	// ATTENTION
+	// When adding new symbols to this file,
+	// Please consider also adding to 'react-devtools-shared/src/backend/ReactSymbols'
+	// The Symbol used to tag the ReactElement-like types.
+	var REACT_ELEMENT_TYPE = Symbol.for('react.element');
+	var REACT_PORTAL_TYPE = Symbol.for('react.portal');
+	var REACT_FRAGMENT_TYPE = Symbol.for('react.fragment');
+	var REACT_STRICT_MODE_TYPE = Symbol.for('react.strict_mode');
+	var REACT_PROFILER_TYPE = Symbol.for('react.profiler');
+	var REACT_PROVIDER_TYPE = Symbol.for('react.provider');
+	var REACT_CONTEXT_TYPE = Symbol.for('react.context');
+	var REACT_FORWARD_REF_TYPE = Symbol.for('react.forward_ref');
+	var REACT_SUSPENSE_TYPE = Symbol.for('react.suspense');
+	var REACT_SUSPENSE_LIST_TYPE = Symbol.for('react.suspense_list');
+	var REACT_MEMO_TYPE = Symbol.for('react.memo');
+	var REACT_LAZY_TYPE = Symbol.for('react.lazy');
+	var REACT_OFFSCREEN_TYPE = Symbol.for('react.offscreen');
+	var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+	var FAUX_ITERATOR_SYMBOL = '@@iterator';
+	function getIteratorFn(maybeIterable) {
+	  if (maybeIterable === null || typeof maybeIterable !== 'object') {
+	    return null;
+	  }
+
+	  var maybeIterator = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable[FAUX_ITERATOR_SYMBOL];
+
+	  if (typeof maybeIterator === 'function') {
+	    return maybeIterator;
+	  }
+
+	  return null;
+	}
+
+	var ReactSharedInternals = React$1.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+
+	function error(format) {
+	  {
+	    {
+	      for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+	        args[_key2 - 1] = arguments[_key2];
+	      }
+
+	      printWarning('error', format, args);
+	    }
+	  }
+	}
+
+	function printWarning(level, format, args) {
+	  // When changing this logic, you might want to also
+	  // update consoleWithStackDev.www.js as well.
+	  {
+	    var ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
+	    var stack = ReactDebugCurrentFrame.getStackAddendum();
+
+	    if (stack !== '') {
+	      format += '%s';
+	      args = args.concat([stack]);
+	    } // eslint-disable-next-line react-internal/safe-string-coercion
+
+
+	    var argsWithFormat = args.map(function (item) {
+	      return String(item);
+	    }); // Careful: RN currently depends on this prefix
+
+	    argsWithFormat.unshift('Warning: ' + format); // We intentionally don't use spread (or .apply) directly because it
+	    // breaks IE9: https://github.com/facebook/react/issues/13610
+	    // eslint-disable-next-line react-internal/no-production-logging
+
+	    Function.prototype.apply.call(console[level], console, argsWithFormat);
+	  }
+	}
+
+	// -----------------------------------------------------------------------------
+
+	var enableScopeAPI = false; // Experimental Create Event Handle API.
+	var enableCacheElement = false;
+	var enableTransitionTracing = false; // No known bugs, but needs performance testing
+
+	var enableLegacyHidden = false; // Enables unstable_avoidThisFallback feature in Fiber
+	// stuff. Intended to enable React core members to more easily debug scheduling
+	// issues in DEV builds.
+
+	var enableDebugTracing = false; // Track which Fiber(s) schedule render work.
+
+	var REACT_MODULE_REFERENCE;
+
+	{
+	  REACT_MODULE_REFERENCE = Symbol.for('react.module.reference');
+	}
+
+	function isValidElementType(type) {
+	  if (typeof type === 'string' || typeof type === 'function') {
+	    return true;
+	  } // Note: typeof might be other than 'symbol' or 'number' (e.g. if it's a polyfill).
+
+
+	  if (type === REACT_FRAGMENT_TYPE || type === REACT_PROFILER_TYPE || enableDebugTracing  || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden  || type === REACT_OFFSCREEN_TYPE || enableScopeAPI  || enableCacheElement  || enableTransitionTracing ) {
+	    return true;
+	  }
+
+	  if (typeof type === 'object' && type !== null) {
+	    if (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || // This needs to include all possible module reference object
+	    // types supported by any Flight configuration anywhere since
+	    // we don't know which Flight build this will end up being used
+	    // with.
+	    type.$$typeof === REACT_MODULE_REFERENCE || type.getModuleId !== undefined) {
+	      return true;
+	    }
+	  }
+
+	  return false;
+	}
+
+	function getWrappedName(outerType, innerType, wrapperName) {
+	  var displayName = outerType.displayName;
+
+	  if (displayName) {
+	    return displayName;
+	  }
+
+	  var functionName = innerType.displayName || innerType.name || '';
+	  return functionName !== '' ? wrapperName + "(" + functionName + ")" : wrapperName;
+	} // Keep in sync with react-reconciler/getComponentNameFromFiber
+
+
+	function getContextName(type) {
+	  return type.displayName || 'Context';
+	} // Note that the reconciler package should generally prefer to use getComponentNameFromFiber() instead.
+
+
+	function getComponentNameFromType(type) {
+	  if (type == null) {
+	    // Host root, text node or just invalid type.
+	    return null;
+	  }
+
+	  {
+	    if (typeof type.tag === 'number') {
+	      error('Received an unexpected object in getComponentNameFromType(). ' + 'This is likely a bug in React. Please file an issue.');
+	    }
+	  }
+
+	  if (typeof type === 'function') {
+	    return type.displayName || type.name || null;
+	  }
+
+	  if (typeof type === 'string') {
+	    return type;
+	  }
+
+	  switch (type) {
+	    case REACT_FRAGMENT_TYPE:
+	      return 'Fragment';
+
+	    case REACT_PORTAL_TYPE:
+	      return 'Portal';
+
+	    case REACT_PROFILER_TYPE:
+	      return 'Profiler';
+
+	    case REACT_STRICT_MODE_TYPE:
+	      return 'StrictMode';
+
+	    case REACT_SUSPENSE_TYPE:
+	      return 'Suspense';
+
+	    case REACT_SUSPENSE_LIST_TYPE:
+	      return 'SuspenseList';
+
+	  }
+
+	  if (typeof type === 'object') {
+	    switch (type.$$typeof) {
+	      case REACT_CONTEXT_TYPE:
+	        var context = type;
+	        return getContextName(context) + '.Consumer';
+
+	      case REACT_PROVIDER_TYPE:
+	        var provider = type;
+	        return getContextName(provider._context) + '.Provider';
+
+	      case REACT_FORWARD_REF_TYPE:
+	        return getWrappedName(type, type.render, 'ForwardRef');
+
+	      case REACT_MEMO_TYPE:
+	        var outerName = type.displayName || null;
+
+	        if (outerName !== null) {
+	          return outerName;
+	        }
+
+	        return getComponentNameFromType(type.type) || 'Memo';
+
+	      case REACT_LAZY_TYPE:
+	        {
+	          var lazyComponent = type;
+	          var payload = lazyComponent._payload;
+	          var init = lazyComponent._init;
+
+	          try {
+	            return getComponentNameFromType(init(payload));
+	          } catch (x) {
+	            return null;
+	          }
+	        }
+
+	      // eslint-disable-next-line no-fallthrough
+	    }
+	  }
+
+	  return null;
+	}
+
+	var assign = Object.assign;
+
+	// Helpers to patch console.logs to avoid logging during side-effect free
+	// replaying on render function. This currently only patches the object
+	// lazily which won't cover if the log function was extracted eagerly.
+	// We could also eagerly patch the method.
+	var disabledDepth = 0;
+	var prevLog;
+	var prevInfo;
+	var prevWarn;
+	var prevError;
+	var prevGroup;
+	var prevGroupCollapsed;
+	var prevGroupEnd;
+
+	function disabledLog() {}
+
+	disabledLog.__reactDisabledLog = true;
+	function disableLogs() {
+	  {
+	    if (disabledDepth === 0) {
+	      /* eslint-disable react-internal/no-production-logging */
+	      prevLog = console.log;
+	      prevInfo = console.info;
+	      prevWarn = console.warn;
+	      prevError = console.error;
+	      prevGroup = console.group;
+	      prevGroupCollapsed = console.groupCollapsed;
+	      prevGroupEnd = console.groupEnd; // https://github.com/facebook/react/issues/19099
+
+	      var props = {
+	        configurable: true,
+	        enumerable: true,
+	        value: disabledLog,
+	        writable: true
+	      }; // $FlowFixMe Flow thinks console is immutable.
+
+	      Object.defineProperties(console, {
+	        info: props,
+	        log: props,
+	        warn: props,
+	        error: props,
+	        group: props,
+	        groupCollapsed: props,
+	        groupEnd: props
+	      });
+	      /* eslint-enable react-internal/no-production-logging */
+	    }
+
+	    disabledDepth++;
+	  }
+	}
+	function reenableLogs() {
+	  {
+	    disabledDepth--;
+
+	    if (disabledDepth === 0) {
+	      /* eslint-disable react-internal/no-production-logging */
+	      var props = {
+	        configurable: true,
+	        enumerable: true,
+	        writable: true
+	      }; // $FlowFixMe Flow thinks console is immutable.
+
+	      Object.defineProperties(console, {
+	        log: assign({}, props, {
+	          value: prevLog
+	        }),
+	        info: assign({}, props, {
+	          value: prevInfo
+	        }),
+	        warn: assign({}, props, {
+	          value: prevWarn
+	        }),
+	        error: assign({}, props, {
+	          value: prevError
+	        }),
+	        group: assign({}, props, {
+	          value: prevGroup
+	        }),
+	        groupCollapsed: assign({}, props, {
+	          value: prevGroupCollapsed
+	        }),
+	        groupEnd: assign({}, props, {
+	          value: prevGroupEnd
+	        })
+	      });
+	      /* eslint-enable react-internal/no-production-logging */
+	    }
+
+	    if (disabledDepth < 0) {
+	      error('disabledDepth fell below zero. ' + 'This is a bug in React. Please file an issue.');
+	    }
+	  }
+	}
+
+	var ReactCurrentDispatcher = ReactSharedInternals.ReactCurrentDispatcher;
+	var prefix;
+	function describeBuiltInComponentFrame(name, source, ownerFn) {
+	  {
+	    if (prefix === undefined) {
+	      // Extract the VM specific prefix used by each line.
+	      try {
+	        throw Error();
+	      } catch (x) {
+	        var match = x.stack.trim().match(/\n( *(at )?)/);
+	        prefix = match && match[1] || '';
+	      }
+	    } // We use the prefix to ensure our stacks line up with native stack frames.
+
+
+	    return '\n' + prefix + name;
+	  }
+	}
+	var reentry = false;
+	var componentFrameCache;
+
+	{
+	  var PossiblyWeakMap = typeof WeakMap === 'function' ? WeakMap : Map;
+	  componentFrameCache = new PossiblyWeakMap();
+	}
+
+	function describeNativeComponentFrame(fn, construct) {
+	  // If something asked for a stack inside a fake render, it should get ignored.
+	  if ( !fn || reentry) {
+	    return '';
+	  }
+
+	  {
+	    var frame = componentFrameCache.get(fn);
+
+	    if (frame !== undefined) {
+	      return frame;
+	    }
+	  }
+
+	  var control;
+	  reentry = true;
+	  var previousPrepareStackTrace = Error.prepareStackTrace; // $FlowFixMe It does accept undefined.
+
+	  Error.prepareStackTrace = undefined;
+	  var previousDispatcher;
+
+	  {
+	    previousDispatcher = ReactCurrentDispatcher.current; // Set the dispatcher in DEV because this might be call in the render function
+	    // for warnings.
+
+	    ReactCurrentDispatcher.current = null;
+	    disableLogs();
+	  }
+
+	  try {
+	    // This should throw.
+	    if (construct) {
+	      // Something should be setting the props in the constructor.
+	      var Fake = function () {
+	        throw Error();
+	      }; // $FlowFixMe
+
+
+	      Object.defineProperty(Fake.prototype, 'props', {
+	        set: function () {
+	          // We use a throwing setter instead of frozen or non-writable props
+	          // because that won't throw in a non-strict mode function.
+	          throw Error();
+	        }
+	      });
+
+	      if (typeof Reflect === 'object' && Reflect.construct) {
+	        // We construct a different control for this case to include any extra
+	        // frames added by the construct call.
+	        try {
+	          Reflect.construct(Fake, []);
+	        } catch (x) {
+	          control = x;
+	        }
+
+	        Reflect.construct(fn, [], Fake);
+	      } else {
+	        try {
+	          Fake.call();
+	        } catch (x) {
+	          control = x;
+	        }
+
+	        fn.call(Fake.prototype);
+	      }
+	    } else {
+	      try {
+	        throw Error();
+	      } catch (x) {
+	        control = x;
+	      }
+
+	      fn();
+	    }
+	  } catch (sample) {
+	    // This is inlined manually because closure doesn't do it for us.
+	    if (sample && control && typeof sample.stack === 'string') {
+	      // This extracts the first frame from the sample that isn't also in the control.
+	      // Skipping one frame that we assume is the frame that calls the two.
+	      var sampleLines = sample.stack.split('\n');
+	      var controlLines = control.stack.split('\n');
+	      var s = sampleLines.length - 1;
+	      var c = controlLines.length - 1;
+
+	      while (s >= 1 && c >= 0 && sampleLines[s] !== controlLines[c]) {
+	        // We expect at least one stack frame to be shared.
+	        // Typically this will be the root most one. However, stack frames may be
+	        // cut off due to maximum stack limits. In this case, one maybe cut off
+	        // earlier than the other. We assume that the sample is longer or the same
+	        // and there for cut off earlier. So we should find the root most frame in
+	        // the sample somewhere in the control.
+	        c--;
+	      }
+
+	      for (; s >= 1 && c >= 0; s--, c--) {
+	        // Next we find the first one that isn't the same which should be the
+	        // frame that called our sample function and the control.
+	        if (sampleLines[s] !== controlLines[c]) {
+	          // In V8, the first line is describing the message but other VMs don't.
+	          // If we're about to return the first line, and the control is also on the same
+	          // line, that's a pretty good indicator that our sample threw at same line as
+	          // the control. I.e. before we entered the sample frame. So we ignore this result.
+	          // This can happen if you passed a class to function component, or non-function.
+	          if (s !== 1 || c !== 1) {
+	            do {
+	              s--;
+	              c--; // We may still have similar intermediate frames from the construct call.
+	              // The next one that isn't the same should be our match though.
+
+	              if (c < 0 || sampleLines[s] !== controlLines[c]) {
+	                // V8 adds a "new" prefix for native classes. Let's remove it to make it prettier.
+	                var _frame = '\n' + sampleLines[s].replace(' at new ', ' at '); // If our component frame is labeled "<anonymous>"
+	                // but we have a user-provided "displayName"
+	                // splice it in to make the stack more readable.
+
+
+	                if (fn.displayName && _frame.includes('<anonymous>')) {
+	                  _frame = _frame.replace('<anonymous>', fn.displayName);
+	                }
+
+	                {
+	                  if (typeof fn === 'function') {
+	                    componentFrameCache.set(fn, _frame);
+	                  }
+	                } // Return the line we found.
+
+
+	                return _frame;
+	              }
+	            } while (s >= 1 && c >= 0);
+	          }
+
+	          break;
+	        }
+	      }
+	    }
+	  } finally {
+	    reentry = false;
+
+	    {
+	      ReactCurrentDispatcher.current = previousDispatcher;
+	      reenableLogs();
+	    }
+
+	    Error.prepareStackTrace = previousPrepareStackTrace;
+	  } // Fallback to just using the name if we couldn't make it throw.
+
+
+	  var name = fn ? fn.displayName || fn.name : '';
+	  var syntheticFrame = name ? describeBuiltInComponentFrame(name) : '';
+
+	  {
+	    if (typeof fn === 'function') {
+	      componentFrameCache.set(fn, syntheticFrame);
+	    }
+	  }
+
+	  return syntheticFrame;
+	}
+	function describeFunctionComponentFrame(fn, source, ownerFn) {
+	  {
+	    return describeNativeComponentFrame(fn, false);
+	  }
+	}
+
+	function shouldConstruct(Component) {
+	  var prototype = Component.prototype;
+	  return !!(prototype && prototype.isReactComponent);
+	}
+
+	function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
+
+	  if (type == null) {
+	    return '';
+	  }
+
+	  if (typeof type === 'function') {
+	    {
+	      return describeNativeComponentFrame(type, shouldConstruct(type));
+	    }
+	  }
+
+	  if (typeof type === 'string') {
+	    return describeBuiltInComponentFrame(type);
+	  }
+
+	  switch (type) {
+	    case REACT_SUSPENSE_TYPE:
+	      return describeBuiltInComponentFrame('Suspense');
+
+	    case REACT_SUSPENSE_LIST_TYPE:
+	      return describeBuiltInComponentFrame('SuspenseList');
+	  }
+
+	  if (typeof type === 'object') {
+	    switch (type.$$typeof) {
+	      case REACT_FORWARD_REF_TYPE:
+	        return describeFunctionComponentFrame(type.render);
+
+	      case REACT_MEMO_TYPE:
+	        // Memo may contain any component type so we recursively resolve it.
+	        return describeUnknownElementTypeFrameInDEV(type.type, source, ownerFn);
+
+	      case REACT_LAZY_TYPE:
+	        {
+	          var lazyComponent = type;
+	          var payload = lazyComponent._payload;
+	          var init = lazyComponent._init;
+
+	          try {
+	            // Lazy may contain any component type so we recursively resolve it.
+	            return describeUnknownElementTypeFrameInDEV(init(payload), source, ownerFn);
+	          } catch (x) {}
+	        }
+	    }
+	  }
+
+	  return '';
+	}
+
+	var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+	var loggedTypeFailures = {};
+	var ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
+
+	function setCurrentlyValidatingElement(element) {
+	  {
+	    if (element) {
+	      var owner = element._owner;
+	      var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
+	      ReactDebugCurrentFrame.setExtraStackFrame(stack);
+	    } else {
+	      ReactDebugCurrentFrame.setExtraStackFrame(null);
+	    }
+	  }
+	}
+
+	function checkPropTypes(typeSpecs, values, location, componentName, element) {
+	  {
+	    // $FlowFixMe This is okay but Flow doesn't know it.
+	    var has = Function.call.bind(hasOwnProperty);
+
+	    for (var typeSpecName in typeSpecs) {
+	      if (has(typeSpecs, typeSpecName)) {
+	        var error$1 = void 0; // Prop type validation may throw. In case they do, we don't want to
+	        // fail the render phase where it didn't fail before. So we log it.
+	        // After these have been cleaned up, we'll let them throw.
+
+	        try {
+	          // This is intentionally an invariant that gets caught. It's the same
+	          // behavior as without this statement except with a better message.
+	          if (typeof typeSpecs[typeSpecName] !== 'function') {
+	            // eslint-disable-next-line react-internal/prod-error-codes
+	            var err = Error((componentName || 'React class') + ': ' + location + ' type `' + typeSpecName + '` is invalid; ' + 'it must be a function, usually from the `prop-types` package, but received `' + typeof typeSpecs[typeSpecName] + '`.' + 'This often happens because of typos such as `PropTypes.function` instead of `PropTypes.func`.');
+	            err.name = 'Invariant Violation';
+	            throw err;
+	          }
+
+	          error$1 = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED');
+	        } catch (ex) {
+	          error$1 = ex;
+	        }
+
+	        if (error$1 && !(error$1 instanceof Error)) {
+	          setCurrentlyValidatingElement(element);
+
+	          error('%s: type specification of %s' + ' `%s` is invalid; the type checker ' + 'function must return `null` or an `Error` but returned a %s. ' + 'You may have forgotten to pass an argument to the type checker ' + 'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' + 'shape all require an argument).', componentName || 'React class', location, typeSpecName, typeof error$1);
+
+	          setCurrentlyValidatingElement(null);
+	        }
+
+	        if (error$1 instanceof Error && !(error$1.message in loggedTypeFailures)) {
+	          // Only monitor this failure once because there tends to be a lot of the
+	          // same error.
+	          loggedTypeFailures[error$1.message] = true;
+	          setCurrentlyValidatingElement(element);
+
+	          error('Failed %s type: %s', location, error$1.message);
+
+	          setCurrentlyValidatingElement(null);
+	        }
+	      }
+	    }
+	  }
+	}
+
+	var isArrayImpl = Array.isArray; // eslint-disable-next-line no-redeclare
+
+	function isArray(a) {
+	  return isArrayImpl(a);
+	}
+
+	/*
+	 * The `'' + value` pattern (used in in perf-sensitive code) throws for Symbol
+	 * and Temporal.* types. See https://github.com/facebook/react/pull/22064.
+	 *
+	 * The functions in this module will throw an easier-to-understand,
+	 * easier-to-debug exception with a clear errors message message explaining the
+	 * problem. (Instead of a confusing exception thrown inside the implementation
+	 * of the `value` object).
+	 */
+	// $FlowFixMe only called in DEV, so void return is not possible.
+	function typeName(value) {
+	  {
+	    // toStringTag is needed for namespaced types like Temporal.Instant
+	    var hasToStringTag = typeof Symbol === 'function' && Symbol.toStringTag;
+	    var type = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || 'Object';
+	    return type;
+	  }
+	} // $FlowFixMe only called in DEV, so void return is not possible.
+
+
+	function willCoercionThrow(value) {
+	  {
+	    try {
+	      testStringCoercion(value);
+	      return false;
+	    } catch (e) {
+	      return true;
+	    }
+	  }
+	}
+
+	function testStringCoercion(value) {
+	  // If you ended up here by following an exception call stack, here's what's
+	  // happened: you supplied an object or symbol value to React (as a prop, key,
+	  // DOM attribute, CSS property, string ref, etc.) and when React tried to
+	  // coerce it to a string using `'' + value`, an exception was thrown.
+	  //
+	  // The most common types that will cause this exception are `Symbol` instances
+	  // and Temporal objects like `Temporal.Instant`. But any object that has a
+	  // `valueOf` or `[Symbol.toPrimitive]` method that throws will also cause this
+	  // exception. (Library authors do this to prevent users from using built-in
+	  // numeric operators like `+` or comparison operators like `>=` because custom
+	  // methods are needed to perform accurate arithmetic or comparison.)
+	  //
+	  // To fix the problem, coerce this object or symbol value to a string before
+	  // passing it to React. The most reliable way is usually `String(value)`.
+	  //
+	  // To find which value is throwing, check the browser or debugger console.
+	  // Before this exception was thrown, there should be `console.error` output
+	  // that shows the type (Symbol, Temporal.PlainDate, etc.) that caused the
+	  // problem and how that type was used: key, atrribute, input value prop, etc.
+	  // In most cases, this console output also shows the component and its
+	  // ancestor components where the exception happened.
+	  //
+	  // eslint-disable-next-line react-internal/safe-string-coercion
+	  return '' + value;
+	}
+	function checkKeyStringCoercion(value) {
+	  {
+	    if (willCoercionThrow(value)) {
+	      error('The provided key is an unsupported type %s.' + ' This value must be coerced to a string before before using it here.', typeName(value));
+
+	      return testStringCoercion(value); // throw (to help callers find troubleshooting comments)
+	    }
+	  }
+	}
+
+	var ReactCurrentOwner = ReactSharedInternals.ReactCurrentOwner;
+	var RESERVED_PROPS = {
+	  key: true,
+	  ref: true,
+	  __self: true,
+	  __source: true
+	};
+	var specialPropKeyWarningShown;
+	var specialPropRefWarningShown;
+	var didWarnAboutStringRefs;
+
+	{
+	  didWarnAboutStringRefs = {};
+	}
+
+	function hasValidRef(config) {
+	  {
+	    if (hasOwnProperty.call(config, 'ref')) {
+	      var getter = Object.getOwnPropertyDescriptor(config, 'ref').get;
+
+	      if (getter && getter.isReactWarning) {
+	        return false;
+	      }
+	    }
+	  }
+
+	  return config.ref !== undefined;
+	}
+
+	function hasValidKey(config) {
+	  {
+	    if (hasOwnProperty.call(config, 'key')) {
+	      var getter = Object.getOwnPropertyDescriptor(config, 'key').get;
+
+	      if (getter && getter.isReactWarning) {
+	        return false;
+	      }
+	    }
+	  }
+
+	  return config.key !== undefined;
+	}
+
+	function warnIfStringRefCannotBeAutoConverted(config, self) {
+	  {
+	    if (typeof config.ref === 'string' && ReactCurrentOwner.current && self && ReactCurrentOwner.current.stateNode !== self) {
+	      var componentName = getComponentNameFromType(ReactCurrentOwner.current.type);
+
+	      if (!didWarnAboutStringRefs[componentName]) {
+	        error('Component "%s" contains the string ref "%s". ' + 'Support for string refs will be removed in a future major release. ' + 'This case cannot be automatically converted to an arrow function. ' + 'We ask you to manually fix this case by using useRef() or createRef() instead. ' + 'Learn more about using refs safely here: ' + 'https://reactjs.org/link/strict-mode-string-ref', getComponentNameFromType(ReactCurrentOwner.current.type), config.ref);
+
+	        didWarnAboutStringRefs[componentName] = true;
+	      }
+	    }
+	  }
+	}
+
+	function defineKeyPropWarningGetter(props, displayName) {
+	  {
+	    var warnAboutAccessingKey = function () {
+	      if (!specialPropKeyWarningShown) {
+	        specialPropKeyWarningShown = true;
+
+	        error('%s: `key` is not a prop. Trying to access it will result ' + 'in `undefined` being returned. If you need to access the same ' + 'value within the child component, you should pass it as a different ' + 'prop. (https://reactjs.org/link/special-props)', displayName);
+	      }
+	    };
+
+	    warnAboutAccessingKey.isReactWarning = true;
+	    Object.defineProperty(props, 'key', {
+	      get: warnAboutAccessingKey,
+	      configurable: true
+	    });
+	  }
+	}
+
+	function defineRefPropWarningGetter(props, displayName) {
+	  {
+	    var warnAboutAccessingRef = function () {
+	      if (!specialPropRefWarningShown) {
+	        specialPropRefWarningShown = true;
+
+	        error('%s: `ref` is not a prop. Trying to access it will result ' + 'in `undefined` being returned. If you need to access the same ' + 'value within the child component, you should pass it as a different ' + 'prop. (https://reactjs.org/link/special-props)', displayName);
+	      }
+	    };
+
+	    warnAboutAccessingRef.isReactWarning = true;
+	    Object.defineProperty(props, 'ref', {
+	      get: warnAboutAccessingRef,
+	      configurable: true
+	    });
+	  }
+	}
+	/**
+	 * Factory method to create a new React element. This no longer adheres to
+	 * the class pattern, so do not use new to call it. Also, instanceof check
+	 * will not work. Instead test $$typeof field against Symbol.for('react.element') to check
+	 * if something is a React Element.
+	 *
+	 * @param {*} type
+	 * @param {*} props
+	 * @param {*} key
+	 * @param {string|object} ref
+	 * @param {*} owner
+	 * @param {*} self A *temporary* helper to detect places where `this` is
+	 * different from the `owner` when React.createElement is called, so that we
+	 * can warn. We want to get rid of owner and replace string `ref`s with arrow
+	 * functions, and as long as `this` and owner are the same, there will be no
+	 * change in behavior.
+	 * @param {*} source An annotation object (added by a transpiler or otherwise)
+	 * indicating filename, line number, and/or other information.
+	 * @internal
+	 */
+
+
+	var ReactElement = function (type, key, ref, self, source, owner, props) {
+	  var element = {
+	    // This tag allows us to uniquely identify this as a React Element
+	    $$typeof: REACT_ELEMENT_TYPE,
+	    // Built-in properties that belong on the element
+	    type: type,
+	    key: key,
+	    ref: ref,
+	    props: props,
+	    // Record the component responsible for creating this element.
+	    _owner: owner
+	  };
+
+	  {
+	    // The validation flag is currently mutative. We put it on
+	    // an external backing store so that we can freeze the whole object.
+	    // This can be replaced with a WeakMap once they are implemented in
+	    // commonly used development environments.
+	    element._store = {}; // To make comparing ReactElements easier for testing purposes, we make
+	    // the validation flag non-enumerable (where possible, which should
+	    // include every environment we run tests in), so the test framework
+	    // ignores it.
+
+	    Object.defineProperty(element._store, 'validated', {
+	      configurable: false,
+	      enumerable: false,
+	      writable: true,
+	      value: false
+	    }); // self and source are DEV only properties.
+
+	    Object.defineProperty(element, '_self', {
+	      configurable: false,
+	      enumerable: false,
+	      writable: false,
+	      value: self
+	    }); // Two elements created in two different places should be considered
+	    // equal for testing purposes and therefore we hide it from enumeration.
+
+	    Object.defineProperty(element, '_source', {
+	      configurable: false,
+	      enumerable: false,
+	      writable: false,
+	      value: source
+	    });
+
+	    if (Object.freeze) {
+	      Object.freeze(element.props);
+	      Object.freeze(element);
+	    }
+	  }
+
+	  return element;
+	};
+	/**
+	 * https://github.com/reactjs/rfcs/pull/107
+	 * @param {*} type
+	 * @param {object} props
+	 * @param {string} key
+	 */
+
+	function jsxDEV(type, config, maybeKey, source, self) {
+	  {
+	    var propName; // Reserved names are extracted
+
+	    var props = {};
+	    var key = null;
+	    var ref = null; // Currently, key can be spread in as a prop. This causes a potential
+	    // issue if key is also explicitly declared (ie. <div {...props} key="Hi" />
+	    // or <div key="Hi" {...props} /> ). We want to deprecate key spread,
+	    // but as an intermediary step, we will use jsxDEV for everything except
+	    // <div {...props} key="Hi" />, because we aren't currently able to tell if
+	    // key is explicitly declared to be undefined or not.
+
+	    if (maybeKey !== undefined) {
+	      {
+	        checkKeyStringCoercion(maybeKey);
+	      }
+
+	      key = '' + maybeKey;
+	    }
+
+	    if (hasValidKey(config)) {
+	      {
+	        checkKeyStringCoercion(config.key);
+	      }
+
+	      key = '' + config.key;
+	    }
+
+	    if (hasValidRef(config)) {
+	      ref = config.ref;
+	      warnIfStringRefCannotBeAutoConverted(config, self);
+	    } // Remaining properties are added to a new props object
+
+
+	    for (propName in config) {
+	      if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+	        props[propName] = config[propName];
+	      }
+	    } // Resolve default props
+
+
+	    if (type && type.defaultProps) {
+	      var defaultProps = type.defaultProps;
+
+	      for (propName in defaultProps) {
+	        if (props[propName] === undefined) {
+	          props[propName] = defaultProps[propName];
+	        }
+	      }
+	    }
+
+	    if (key || ref) {
+	      var displayName = typeof type === 'function' ? type.displayName || type.name || 'Unknown' : type;
+
+	      if (key) {
+	        defineKeyPropWarningGetter(props, displayName);
+	      }
+
+	      if (ref) {
+	        defineRefPropWarningGetter(props, displayName);
+	      }
+	    }
+
+	    return ReactElement(type, key, ref, self, source, ReactCurrentOwner.current, props);
+	  }
+	}
+
+	var ReactCurrentOwner$1 = ReactSharedInternals.ReactCurrentOwner;
+	var ReactDebugCurrentFrame$1 = ReactSharedInternals.ReactDebugCurrentFrame;
+
+	function setCurrentlyValidatingElement$1(element) {
+	  {
+	    if (element) {
+	      var owner = element._owner;
+	      var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
+	      ReactDebugCurrentFrame$1.setExtraStackFrame(stack);
+	    } else {
+	      ReactDebugCurrentFrame$1.setExtraStackFrame(null);
+	    }
+	  }
+	}
+
+	var propTypesMisspellWarningShown;
+
+	{
+	  propTypesMisspellWarningShown = false;
+	}
+	/**
+	 * Verifies the object is a ReactElement.
+	 * See https://reactjs.org/docs/react-api.html#isvalidelement
+	 * @param {?object} object
+	 * @return {boolean} True if `object` is a ReactElement.
+	 * @final
+	 */
+
+
+	function isValidElement(object) {
+	  {
+	    return typeof object === 'object' && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+	  }
+	}
+
+	function getDeclarationErrorAddendum() {
+	  {
+	    if (ReactCurrentOwner$1.current) {
+	      var name = getComponentNameFromType(ReactCurrentOwner$1.current.type);
+
+	      if (name) {
+	        return '\n\nCheck the render method of `' + name + '`.';
+	      }
+	    }
+
+	    return '';
+	  }
+	}
+
+	function getSourceInfoErrorAddendum(source) {
+	  {
+
+	    return '';
+	  }
+	}
+	/**
+	 * Warn if there's no key explicitly set on dynamic arrays of children or
+	 * object keys are not valid. This allows us to keep track of children between
+	 * updates.
+	 */
+
+
+	var ownerHasKeyUseWarning = {};
+
+	function getCurrentComponentErrorInfo(parentType) {
+	  {
+	    var info = getDeclarationErrorAddendum();
+
+	    if (!info) {
+	      var parentName = typeof parentType === 'string' ? parentType : parentType.displayName || parentType.name;
+
+	      if (parentName) {
+	        info = "\n\nCheck the top-level render call using <" + parentName + ">.";
+	      }
+	    }
+
+	    return info;
+	  }
+	}
+	/**
+	 * Warn if the element doesn't have an explicit key assigned to it.
+	 * This element is in an array. The array could grow and shrink or be
+	 * reordered. All children that haven't already been validated are required to
+	 * have a "key" property assigned to it. Error statuses are cached so a warning
+	 * will only be shown once.
+	 *
+	 * @internal
+	 * @param {ReactElement} element Element that requires a key.
+	 * @param {*} parentType element's parent's type.
+	 */
+
+
+	function validateExplicitKey(element, parentType) {
+	  {
+	    if (!element._store || element._store.validated || element.key != null) {
+	      return;
+	    }
+
+	    element._store.validated = true;
+	    var currentComponentErrorInfo = getCurrentComponentErrorInfo(parentType);
+
+	    if (ownerHasKeyUseWarning[currentComponentErrorInfo]) {
+	      return;
+	    }
+
+	    ownerHasKeyUseWarning[currentComponentErrorInfo] = true; // Usually the current owner is the offender, but if it accepts children as a
+	    // property, it may be the creator of the child that's responsible for
+	    // assigning it a key.
+
+	    var childOwner = '';
+
+	    if (element && element._owner && element._owner !== ReactCurrentOwner$1.current) {
+	      // Give the component that originally created this child.
+	      childOwner = " It was passed a child from " + getComponentNameFromType(element._owner.type) + ".";
+	    }
+
+	    setCurrentlyValidatingElement$1(element);
+
+	    error('Each child in a list should have a unique "key" prop.' + '%s%s See https://reactjs.org/link/warning-keys for more information.', currentComponentErrorInfo, childOwner);
+
+	    setCurrentlyValidatingElement$1(null);
+	  }
+	}
+	/**
+	 * Ensure that every element either is passed in a static location, in an
+	 * array with an explicit keys property defined, or in an object literal
+	 * with valid key property.
+	 *
+	 * @internal
+	 * @param {ReactNode} node Statically passed child of any type.
+	 * @param {*} parentType node's parent's type.
+	 */
+
+
+	function validateChildKeys(node, parentType) {
+	  {
+	    if (typeof node !== 'object') {
+	      return;
+	    }
+
+	    if (isArray(node)) {
+	      for (var i = 0; i < node.length; i++) {
+	        var child = node[i];
+
+	        if (isValidElement(child)) {
+	          validateExplicitKey(child, parentType);
+	        }
+	      }
+	    } else if (isValidElement(node)) {
+	      // This element was passed in a valid location.
+	      if (node._store) {
+	        node._store.validated = true;
+	      }
+	    } else if (node) {
+	      var iteratorFn = getIteratorFn(node);
+
+	      if (typeof iteratorFn === 'function') {
+	        // Entry iterators used to provide implicit keys,
+	        // but now we print a separate warning for them later.
+	        if (iteratorFn !== node.entries) {
+	          var iterator = iteratorFn.call(node);
+	          var step;
+
+	          while (!(step = iterator.next()).done) {
+	            if (isValidElement(step.value)) {
+	              validateExplicitKey(step.value, parentType);
+	            }
+	          }
+	        }
+	      }
+	    }
+	  }
+	}
+	/**
+	 * Given an element, validate that its props follow the propTypes definition,
+	 * provided by the type.
+	 *
+	 * @param {ReactElement} element
+	 */
+
+
+	function validatePropTypes(element) {
+	  {
+	    var type = element.type;
+
+	    if (type === null || type === undefined || typeof type === 'string') {
+	      return;
+	    }
+
+	    var propTypes;
+
+	    if (typeof type === 'function') {
+	      propTypes = type.propTypes;
+	    } else if (typeof type === 'object' && (type.$$typeof === REACT_FORWARD_REF_TYPE || // Note: Memo only checks outer props here.
+	    // Inner props are checked in the reconciler.
+	    type.$$typeof === REACT_MEMO_TYPE)) {
+	      propTypes = type.propTypes;
+	    } else {
+	      return;
+	    }
+
+	    if (propTypes) {
+	      // Intentionally inside to avoid triggering lazy initializers:
+	      var name = getComponentNameFromType(type);
+	      checkPropTypes(propTypes, element.props, 'prop', name, element);
+	    } else if (type.PropTypes !== undefined && !propTypesMisspellWarningShown) {
+	      propTypesMisspellWarningShown = true; // Intentionally inside to avoid triggering lazy initializers:
+
+	      var _name = getComponentNameFromType(type);
+
+	      error('Component %s declared `PropTypes` instead of `propTypes`. Did you misspell the property assignment?', _name || 'Unknown');
+	    }
+
+	    if (typeof type.getDefaultProps === 'function' && !type.getDefaultProps.isReactClassApproved) {
+	      error('getDefaultProps is only used on classic React.createClass ' + 'definitions. Use a static property named `defaultProps` instead.');
+	    }
+	  }
+	}
+	/**
+	 * Given a fragment, validate that it can only be provided with fragment props
+	 * @param {ReactElement} fragment
+	 */
+
+
+	function validateFragmentProps(fragment) {
+	  {
+	    var keys = Object.keys(fragment.props);
+
+	    for (var i = 0; i < keys.length; i++) {
+	      var key = keys[i];
+
+	      if (key !== 'children' && key !== 'key') {
+	        setCurrentlyValidatingElement$1(fragment);
+
+	        error('Invalid prop `%s` supplied to `React.Fragment`. ' + 'React.Fragment can only have `key` and `children` props.', key);
+
+	        setCurrentlyValidatingElement$1(null);
+	        break;
+	      }
+	    }
+
+	    if (fragment.ref !== null) {
+	      setCurrentlyValidatingElement$1(fragment);
+
+	      error('Invalid attribute `ref` supplied to `React.Fragment`.');
+
+	      setCurrentlyValidatingElement$1(null);
+	    }
+	  }
+	}
+
+	var didWarnAboutKeySpread = {};
+	function jsxWithValidation(type, props, key, isStaticChildren, source, self) {
+	  {
+	    var validType = isValidElementType(type); // We warn in this case but don't throw. We expect the element creation to
+	    // succeed and there will likely be errors in render.
+
+	    if (!validType) {
+	      var info = '';
+
+	      if (type === undefined || typeof type === 'object' && type !== null && Object.keys(type).length === 0) {
+	        info += ' You likely forgot to export your component from the file ' + "it's defined in, or you might have mixed up default and named imports.";
+	      }
+
+	      var sourceInfo = getSourceInfoErrorAddendum();
+
+	      if (sourceInfo) {
+	        info += sourceInfo;
+	      } else {
+	        info += getDeclarationErrorAddendum();
+	      }
+
+	      var typeString;
+
+	      if (type === null) {
+	        typeString = 'null';
+	      } else if (isArray(type)) {
+	        typeString = 'array';
+	      } else if (type !== undefined && type.$$typeof === REACT_ELEMENT_TYPE) {
+	        typeString = "<" + (getComponentNameFromType(type.type) || 'Unknown') + " />";
+	        info = ' Did you accidentally export a JSX literal instead of a component?';
+	      } else {
+	        typeString = typeof type;
+	      }
+
+	      error('React.jsx: type is invalid -- expected a string (for ' + 'built-in components) or a class/function (for composite ' + 'components) but got: %s.%s', typeString, info);
+	    }
+
+	    var element = jsxDEV(type, props, key, source, self); // The result can be nullish if a mock or a custom function is used.
+	    // TODO: Drop this when these are no longer allowed as the type argument.
+
+	    if (element == null) {
+	      return element;
+	    } // Skip key warning if the type isn't valid since our key validation logic
+	    // doesn't expect a non-string/function type and can throw confusing errors.
+	    // We don't want exception behavior to differ between dev and prod.
+	    // (Rendering will throw with a helpful message and as soon as the type is
+	    // fixed, the key warnings will appear.)
+
+
+	    if (validType) {
+	      var children = props.children;
+
+	      if (children !== undefined) {
+	        if (isStaticChildren) {
+	          if (isArray(children)) {
+	            for (var i = 0; i < children.length; i++) {
+	              validateChildKeys(children[i], type);
+	            }
+
+	            if (Object.freeze) {
+	              Object.freeze(children);
+	            }
+	          } else {
+	            error('React.jsx: Static children should always be an array. ' + 'You are likely explicitly calling React.jsxs or React.jsxDEV. ' + 'Use the Babel transform instead.');
+	          }
+	        } else {
+	          validateChildKeys(children, type);
+	        }
+	      }
+	    }
+
+	    {
+	      if (hasOwnProperty.call(props, 'key')) {
+	        var componentName = getComponentNameFromType(type);
+	        var keys = Object.keys(props).filter(function (k) {
+	          return k !== 'key';
+	        });
+	        var beforeExample = keys.length > 0 ? '{key: someKey, ' + keys.join(': ..., ') + ': ...}' : '{key: someKey}';
+
+	        if (!didWarnAboutKeySpread[componentName + beforeExample]) {
+	          var afterExample = keys.length > 0 ? '{' + keys.join(': ..., ') + ': ...}' : '{}';
+
+	          error('A props object containing a "key" prop is being spread into JSX:\n' + '  let props = %s;\n' + '  <%s {...props} />\n' + 'React keys must be passed directly to JSX without using spread:\n' + '  let props = %s;\n' + '  <%s key={someKey} {...props} />', beforeExample, componentName, afterExample, componentName);
+
+	          didWarnAboutKeySpread[componentName + beforeExample] = true;
+	        }
+	      }
+	    }
+
+	    if (type === REACT_FRAGMENT_TYPE) {
+	      validateFragmentProps(element);
+	    } else {
+	      validatePropTypes(element);
+	    }
+
+	    return element;
+	  }
+	} // These two functions exist to still get child warnings in dev
+	// even with the prod transform. This means that jsxDEV is purely
+	// opt-in behavior for better messages but that we won't stop
+	// giving you warnings if you use production apis.
+
+	function jsxWithValidationStatic(type, props, key) {
+	  {
+	    return jsxWithValidation(type, props, key, true);
+	  }
+	}
+	function jsxWithValidationDynamic(type, props, key) {
+	  {
+	    return jsxWithValidation(type, props, key, false);
+	  }
+	}
+
+	var jsx =  jsxWithValidationDynamic ; // we may want to special case jsxs internally to take advantage of static children.
+	// for now we can ship identical prod functions
+
+	var jsxs =  jsxWithValidationStatic ;
+
+	reactJsxRuntime_development.Fragment = REACT_FRAGMENT_TYPE;
+	reactJsxRuntime_development.jsx = jsx;
+	reactJsxRuntime_development.jsxs = jsxs;
+	  })();
+	}
+	return reactJsxRuntime_development;
+}
+
+if (process.env.NODE_ENV === 'production') {
+  jsxRuntime.exports = requireReactJsxRuntime_production_min();
+} else {
+  jsxRuntime.exports = requireReactJsxRuntime_development();
+}
+
+var jsxRuntimeExports = jsxRuntime.exports;
+
+function p(e,t,n,o){var r=e.ownerDocument;o||(o=r.createRange());let i,l,s,u=r.createNodeIterator(e,NodeFilter.SHOW_TEXT,null,!1),c={},d={};for(;i=u.nextNode();)l=i.nodeValue,s=l.length,!c.node&&s>t&&(c.node=i,c.offset=t),!d.node&&s>=n&&(d.node=i,d.offset=n),t-=s,n-=s;return c.node&&o.setStart(c.node,c.offset),d.node&&o.setEnd(d.node,d.offset),o}const h="current",g=jsxRuntimeExports.jsx("span",{style:{color:"transparent"},children:"​"}),f=["direction","padding","paddingTop","paddingBottom","paddingLeft","paddingRight","margin","marginTop","marginBottom","marginLeft","marginRight","border","borderWidth","borderTopWidth","borderBottomWidth","borderLeftWidth","borderRightWidth","borderStyle","borderTopStyle","borderBottomStyle","borderLeftStyle","borderRightStyle","fontSize","fontFamily","fontStyle","fontVariant","fontWeight","fontStretch","fontSizeAdjust","textAlign","textTransform","textIndent","letterSpacing","wordSpacing","lineHeight","whiteSpace","wordBreak","overflowWrap","tabSize","MozTabSize"],b=(e,t)=>e.getPropertyValue(t),S=(e,t,n)=>{e.setProperty(t,n);},v=(e,t)=>{const n=b(e,t);return n?parseInt(n,10):0},m=e=>getComputedStyle(e),y=e=>"string"==typeof e&&e.endsWith("%"),x=e=>v(e,"padding-top")+v(e,"padding-bottom")+v(e,"border-top")+v(e,"border-bottom"),w=e=>v(e,"padding-left")+v(e,"padding-right")+v(e,"border-left")+v(e,"border-right"),_=(e,t,n)=>{const o="pointer-events",r=e.style,i=t.style,l=b(r,o),s=b(i,o);S(r,o,"none"),S(i,o,"auto");const u=document.elementFromPoint(n.clientX,n.clientY);return S(r,o,l),S(i,o,s),M(u,t)?u:null},M=(e,t)=>!!e&&t!==e&&t.contains(e),k=(e,t,n)=>{e.dispatchEvent(new MouseEvent(t,n));},z=(e,t)=>{k(e,t.type,t);},T=(e,t)=>{e&&k(e,"mouseout",t);},C=e=>{e.stopPropagation();},E=(e,t,n,o)=>{const r=m(e),i=e.style,l=t.style;n[h]||(n[h]=b(r,"color")),f.forEach((e=>{l[e]=r[e];})),i.color=l.borderColor="transparent",i.caretColor=(null==o?void 0:o.caretColor)||n[h];},A=(e,t,n)=>(e.addEventListener(t,n),()=>{e.removeEventListener(t,n);}),W=(e,t)=>{let n,o=[null,null];const r={t(){setTimeout((()=>{t((()=>{const e=r.o(),t=r.i();return o[0]===e&&o[1]===t||(o=[e,t]),o})());}));},l(e){n=e;},o(){const t=e[h];if(!t)return 0;const o=t.selectionStart;return n?Math.min(o,t.selectionEnd-n.data.length):o},i(){const t=e[h];if(!t)return 0;const o=t.selectionEnd;return n?Math.min(o,t.selectionStart+n.data.length):o}};return r},R="undefined"!=typeof window?useLayoutEffect:useEffect,j=e=>{const t=useRef();return t[h]||(t[h]=e())},B=(e,t,n,o,r)=>{let i=null;const l=new ResizeObserver((([t])=>{const{contentRect:{width:n,height:r},borderBoxSize:i}=t;if(i&&i[0])return void o([n,r,i[0].inlineSize-n,i[0].blockSize-r]);const l=m(e);o([n,r,w(l),x(l)]);})),s=A(e,"focus",(()=>{r(!0);})),u=A(e,"blur",(()=>{r(!1);})),c=A(e,"scroll",(()=>{const{scrollTop:n,scrollLeft:o}=e;t.style.transform=`translate(${-o}px, ${-n}px)`;})),d=A(e,"mousedown",(o=>{n.t();const r=A(document,"mouseup",(()=>{n.t(),r();})),i=_(e,t,o);i&&z(i,o);})),a=A(e,"mouseup",(n=>{const o=_(e,t,n);o&&z(o,n);})),p=A(e,"mousemove",(n=>{const o=_(e,t,n);((e,t,n)=>{e&&z(e,n),t!==e&&(T(t,n),e&&k(e,"mouseover",n));})(o,i,n),i=o;})),h=A(e,"mouseleave",(e=>{T(i,e),i=null;})),g=A(e,"click",(n=>{const o=_(e,t,n);o&&z(o,n);})),f=A(e,"input",(()=>{n.t();})),b=A(e,"compositionstart",(e=>{n.l(e);})),S=A(e,"compositionupdate",(e=>{n.l(e);})),v=A(e,"compositionend",(()=>{n.l();}));return l.observe(e),()=>{s(),u(),c(),d(),a(),p(),h(),g(),f(),b(),S(),v(),l.disconnect();}},D=/*#__PURE__*/memo((({u:e,p:n,h:o,S:r})=>{const[i,l]=useState("");return useImperativeHandle(n,(()=>l),[]),jsxRuntimeExports.jsxs("div",{ref:e,"aria-hidden":!0,style:useMemo((()=>({width:r,transform:"translate(0px, 0px)",pointerEvents:"none",userSelect:"none",msUserSelect:"none",WebkitUserSelect:"none",boxSizing:"content-box",textSizeAdjust:"100%",WebkitTextSizeAdjust:"100%",MozTextSizeAdjust:"100%"})),[r]),onClick:C,onMouseDown:C,onMouseUp:C,onMouseOver:C,onMouseOut:C,onMouseMove:C,children:[useMemo((()=>o?o(i):i),[i,o]),g]})})),L=/*#__PURE__*/forwardRef((({children:n,autoHeight:o,style:l,onChange:d,onKeyDown:g,onSelectionChange:f,...b},S)=>{const v=useRef(null),m=useRef(null),x=useRef(null),[[w,_,M,k],z]=useState([0,0,0,0]),[T,C]=useState(!1),A=useRef(""),[[L,U],$]=useState([null,null]),O=j((()=>W(v,$))),H=w+M,K=_+k,I=!!(H+K);return useImperativeHandle(S,(()=>{const e=v[h],t={get selectionStart(){return O.o()},get selectionEnd(){return O.i()},setRangeText(t,n,o,r){e.setRangeText?e.setRangeText(t,n,o,r):(e.focus(),e.selectionStart=n,e.selectionEnd=o,document.execCommand("insertText",!1,t)),e.dispatchEvent(new Event("input",{bubbles:!0}));}};return new Proxy(e,{get(e,n){if(t[n])return t[n];const o=e[n];return "function"==typeof o?o.bind(e):o},set:(e,t,n)=>(e[t]=n,!0)})}),[]),R((()=>{const e=v[h],t=m[h];if(e&&t)return B(e,t,O,z,C)}),[]),R((()=>{const e=v[h];e&&x[h](e.value);}),[b.value]),R((()=>{const e=v[h],t=m[h];t&&e&&E(e,t,A,l);}),[l]),useEffect((()=>{if(null!=L&&null!=U&&f)if(T){const e=p(m[h],L,L+1).getBoundingClientRect();f({focused:!0,top:e.top,left:e.left,height:e.height,selectionStart:L,selectionEnd:U});}else f({focused:!1,selectionStart:L,selectionEnd:U});}),[T,L,U]),useEffect((()=>{const e=v[h];o&&e&&(e.style.height="auto",e.style.height=e.scrollHeight+"px");})),jsxRuntimeExports.jsxs("div",{style:useMemo((()=>{let e=H,t=K;return l&&(y(l.width)&&(e=l.width),y(l.height)&&(t=l.height)),{display:"inline-block",position:"relative",width:e,height:t}}),[H,K,l]),children:[jsxRuntimeExports.jsx("div",{style:useMemo((()=>{const e={position:"absolute",overflow:"hidden",top:0,left:0,width:H,height:K};return l?(["background","backgroundColor"].forEach((t=>{l[t]&&(e[t]=l[t]);})),e):e}),[H,K,l]),children:jsxRuntimeExports.jsx(D,{u:m,p:x,h:n,S:w})}),jsxRuntimeExports.jsx("textarea",{...b,ref:v,style:useMemo((()=>({...l,background:"transparent",margin:0,position:"absolute",...!I&&{position:void 0,verticalAlign:"top"}})),[l,I]),onChange:useCallback((e=>{var t;null===(t=x[h])||void 0===t||t.call(x,e.target.value),null==d||d(e);}),[d]),onKeyDown:useCallback((e=>{e.nativeEvent.isComposing||229===e.nativeEvent.keyCode||(null==g||g(e),O.t());}),[g])})]})})),O=(e,t,n)=>{const o=[];let r=null;for(;r=e.exec(t);)n&&!n(t,r)||o.push(r);return o},H=t=>{const n=t.map((([,e])=>e));return o=>{var r;const[i,l,s]=t.reduce(((e,[t,n,r])=>(O(t,o,r).forEach((t=>{const o=t.index,r=t.index+t[0].length;e[0].add(o).add(r);let i=e[1].get(o),l=e[2].get(r);i||e[1].set(o,i=[]),l||e[2].set(r,l=[]),i.push(n),l.push(n);})),e)),[new Set,new Map,new Map]),u=Array.from(i);u.sort(((e,t)=>e-t));let c=0;const d=[],a=[];for(let t=0;t<u.length;t++){const i=u[t],p=null!==(r=u[t+1])&&void 0!==r?r:o.length;if(i===p)continue;const h=o.slice(c,i);h&&a.push(h);const g=l.get(i),f=s.get(p);g&&(g.forEach((e=>{d.push(e);})),d.sort(((e,t)=>n.indexOf(t)-n.indexOf(e))));const b=o.slice(i,p);a.push(d.reduceRight(((t,n,o)=>{const r=0===o?i+"":void 0;return "function"==typeof n?n({children:t,value:b,key:r}):jsxRuntimeExports.jsx("span",{style:n,children:t},r)}),b)),f&&f.forEach((e=>{d.splice(d.indexOf(e),1);})),c=p;}const p=o.slice(c);return p&&a.push(p),a}};
+
+const variablesColors = {
+    string: "#FF5733",
+    number: "#33B5E5",
+    boolean: "#E91E63",
+    any: "#9E9E9E",
+    unknown: "#795548",
+    Function: "#8BC34A",
+    Object: "#FF9800",
+    Array: "#673AB7",
+    Date: "#3F51B5", // Azul escuro
+};
+const posibleTypes = [
+    {
+        icon: mdiAlphaA,
+        color: variablesColors.any,
+        name: "any",
+        type: "text",
+    },
+    {
+        icon: mdiAlphabeticalVariant,
+        color: variablesColors.string,
+        name: "string",
+        type: "text",
+    },
+    {
+        icon: mdiNumeric,
+        color: variablesColors.number,
+        name: "number",
+        type: "number",
+    },
+    {
+        icon: mdiToggleSwitchOffOutline,
+        color: variablesColors.boolean,
+        name: "boolean",
+        type: "boolean",
+    },
+    {
+        icon: mdiCalendar,
+        color: variablesColors.Date,
+        name: "Date",
+        type: "datetime",
+    },
+    {
+        icon: mdiCodeBraces,
+        color: variablesColors.Object,
+        name: "Object",
+        type: "text",
+    },
+    {
+        icon: mdiCodeBrackets,
+        color: variablesColors.Array,
+        name: "Array",
+        type: "text",
+    },
+    {
+        icon: mdiFunction,
+        color: variablesColors.Function,
+        name: "Function",
+        type: "text",
+    },
+];
+const VariableField = ({ fieldName, validTypes = [], definition = "var", expressionType: variableType = "any", name: n = "", value: v = "", color, byId, onMutate }) => {
+    var _a, _b, _c, _d, _e, _f;
+    const types = [...posibleTypes, ...validTypes];
+    const id_01 = useId();
+    const id_02 = useId();
+    const [def, setDef] = React.useState(definition);
+    const [type, setType] = React.useState(variableType);
+    const [valueType, setValueType] = React.useState((_b = (_a = types.find((t) => t.name === variableType)) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : "text");
+    const [name, setName] = React.useState(n);
+    const [value, setValue] = React.useState({
+        [valueType]: { value: v, default: v },
+    });
+    useEffect(() => {
+        var _a, _b, _c, _d, _e;
+        onMutate === null || onMutate === void 0 ? void 0 : onMutate({
+            fieldName,
+            type: "variable",
+            name,
+            expressionType: type,
+            default: (_a = value[valueType]) === null || _a === void 0 ? void 0 : _a.default,
+            value: (_b = value[valueType]) === null || _b === void 0 ? void 0 : _b.value,
+            isConstant: def === "const",
+            definition: def,
+            color: (_e = (_c = color !== null && color !== void 0 ? color : variablesColors[valueType]) !== null && _c !== void 0 ? _c : (_d = types.find((t) => t.name === valueType)) === null || _d === void 0 ? void 0 : _d.color) !== null && _e !== void 0 ? _e : variablesColors.any,
+            byId,
+        });
+    }, [def, type, valueType, name, value]);
+    const currentValue = (_f = (_d = (_c = value === null || value === void 0 ? void 0 : value[valueType]) === null || _c === void 0 ? void 0 : _c.value) !== null && _d !== void 0 ? _d : (_e = value === null || value === void 0 ? void 0 : value[valueType]) === null || _e === void 0 ? void 0 : _e.default) !== null && _f !== void 0 ? _f : (valueType === "number" ? 0 : valueType === "boolean" ? true : "");
+    return (React.createElement(React.Fragment, null,
+        React.createElement(Box, { component: "form", sx: {
+                "& > *": { margin: "5px !important" },
+                "width": "100%",
+                "display": "flex",
+                "flexDirection": "row",
+            }, noValidate: true, autoComplete: "off" },
+            React.createElement(FormControl, { size: "small", style: {
+                    minWidth: "80px",
+                    width: "auto",
+                } },
+                React.createElement(InputLabel, { id: id_01 }, "Def."),
+                React.createElement(Select, { labelId: id_01, label: "Age", sx: {
+                        "& > *": {
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        },
+                        ".MuiListItemIcon-root": {
+                            width: "auto",
+                            minWidth: "auto",
+                        },
+                        ".MuiSelect-select": {
+                            display: "flex",
+                        },
+                        ".MuiListItemText-root": {
+                            display: "none",
+                        },
+                    }, value: def, onChange: (event) => {
+                        var _a;
+                        setDef((_a = event.target.value) !== null && _a !== void 0 ? _a : "var");
+                    } },
+                    React.createElement(MenuItem, { value: "var" },
+                        React.createElement(ListItemIcon, null,
+                            React.createElement(Icon$1, { path: mdiAlphaVBoxOutline, size: 1, color: "#1565c0" })),
+                        React.createElement(ListItemText, { primary: "Var" })),
+                    React.createElement(MenuItem, { value: "let" },
+                        React.createElement(ListItemIcon, null,
+                            React.createElement(Icon$1, { path: mdiAlphaLBox, size: 1, color: "#3f51b5" })),
+                        React.createElement(ListItemText, { primary: "Let" })),
+                    React.createElement(MenuItem, { value: "const" },
+                        React.createElement(ListItemIcon, null,
+                            React.createElement(Icon$1, { path: mdiAlphaCCircle, size: 1, color: "#6a1b9a" })),
+                        React.createElement(ListItemText, { primary: "Const" })))),
+            React.createElement(TextField, { label: "Key", value: name, onChange: (event) => {
+                    setName(event.target.value);
+                }, size: "small", fullWidth: true })),
+        React.createElement(Box, { component: "form", sx: {
+                "& > *": { margin: "5px !important" },
+                "width": "100%",
+                "display": "flex",
+                "flexDirection": "row",
+            }, noValidate: true, autoComplete: "off" },
+            React.createElement(FormControl, { size: "small", style: {
+                    minWidth: "80px",
+                    width: "auto",
+                } },
+                React.createElement(InputLabel, { id: id_02 }, "Type"),
+                React.createElement(Select, { size: "small", labelId: id_02, label: "Age", sx: {
+                        "& > *": {
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        },
+                        ".MuiListItemIcon-root": {
+                            width: "auto",
+                            minWidth: "auto",
+                        },
+                        ".MuiSelect-select": {
+                            display: "flex",
+                        },
+                        ".MuiListItemText-root": {
+                            display: "none",
+                        },
+                    }, value: type, onChange: (event) => {
+                        var _a, _b;
+                        setType(event.target.value);
+                        setValueType((_b = (_a = types.find((t) => t.name === event.target.value)) === null || _a === void 0 ? void 0 : _a.type) !== null && _b !== void 0 ? _b : "text");
+                    } }, types.map(({ name, icon, color }, index) => {
+                    return (React.createElement(MenuItem, { value: name, key: index },
+                        React.createElement(ListItemIcon, null,
+                            React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiInformationSymbol, size: 1, color: color })),
+                        React.createElement(ListItemText, { primary: name })));
+                }))),
+            React.createElement(InputField, { fieldName: "", type: "input", label: "Value", value: Object.assign(Object.assign({ value: currentValue }, value === null || value === void 0 ? void 0 : value[valueType]), { type: valueType }), onMutate: (v) => {
+                    setValue((p) => {
+                        var _a, _b, _c;
+                        return Object.assign(Object.assign({}, p), { [valueType]: {
+                                value: (_a = v.value) === null || _a === void 0 ? void 0 : _a.value,
+                                default: (_c = (_b = p === null || p === void 0 ? void 0 : p[valueType]) === null || _b === void 0 ? void 0 : _b.default) !== null && _c !== void 0 ? _c : undefined,
+                            } });
+                    });
+                } }))));
+};
+
+const MenuVariables = ({ variables, index, top, left, complete }) => {
+    const mainRef = useRef(null);
+    useEffect(() => {
+        if (!mainRef.current)
+            return;
+        const { top, left, width, height } = mainRef.current.getBoundingClientRect();
+        if (left + width > window.innerWidth) {
+            mainRef.current.style.left = `${window.innerWidth - width}px`;
+        }
+        else if (left < 0) {
+            mainRef.current.style.left = "0px";
+        }
+        if (top + height > window.innerHeight) {
+            mainRef.current.style.top = `${window.innerHeight - height}px`;
+        }
+        else if (top < 0) {
+            mainRef.current.style.top = "0px";
+        }
+    }, [mainRef.current, top, left]);
+    return (React.createElement(Paper, { ref: mainRef, sx: {
+            position: "fixed",
+            top: top,
+            left: left,
+            zIndex: 9999,
+            width: "90%",
+            maxWidth: 250,
+        }, elevation: 5 },
+        React.createElement(List, { sx: {
+                width: "100%",
+            } }, variables.map((c, i) => {
+            var _a, _b;
+            return (React.createElement(ListItem, { key: c.name, secondaryAction: React.createElement("div", { style: {
+                        marginRight: "5px",
+                        display: "inline-block",
+                        borderRadius: "20px",
+                        border: `1px solid rgba(0, 0, 0, 0.1)`,
+                        padding: "2px 10px",
+                        background: (_b = (_a = c.color) !== null && _a !== void 0 ? _a : variablesColors[c.expressionType]) !== null && _b !== void 0 ? _b : "#2A6AD3",
+                        color: "white",
+                    } }, c.expressionType), disablePadding: true, onMouseDown: (e) => {
+                    e.preventDefault();
+                    complete(i);
+                } },
+                React.createElement(ListItemButton, null,
+                    React.createElement(ListItemText, { primary: c.name }))));
+        }))));
+};
+const MENTION_REG = /(?<!\\)\{([a-zA-Z_$][a-zA-Z0-9_$]*)?$/;
+const mentionRenderer = (variables) => {
+    const style = {
+        background: "#455a64",
+        color: "#ffffff",
+        borderRadius: "3px",
+        padding: "2px 0px",
+    };
+    return H(variables.map(({ name, color, expressionType }) => {
+        var _a;
+        return [new RegExp(`(?<!\\\\)\\{(${name})\\}`, "g"), Object.assign(Object.assign({}, style), { background: (_a = color !== null && color !== void 0 ? color : variablesColors[expressionType]) !== null && _a !== void 0 ? _a : style.background })];
+    }));
+};
+const TextareaVariables = forwardRef((_a, ref) => {
+    var _b;
+    var { variables = [], style, rows, autoHeight = true, defaultValue, value } = _a, props = __rest(_a, ["variables", "style", "rows", "autoHeight", "defaultValue", "value"]);
+    const mainRef = useRef(null);
+    const [text, setText] = useState(defaultValue !== null && defaultValue !== void 0 ? defaultValue : "");
+    const [pos, setPos] = useState(null);
+    const [index, setIndex] = useState(0);
+    const targetText = pos ? text.slice(0, pos.caret) : text;
+    const match = pos && targetText.match(MENTION_REG);
+    const name = (_b = match === null || match === void 0 ? void 0 : match[1]) !== null && _b !== void 0 ? _b : "";
+    const filtered = useMemo(() => variables.filter((v) => v.name.includes(name)), [name]);
+    const complete = (i) => {
+        if (!mainRef.current || !pos)
+            return;
+        const selected = filtered[i].name;
+        mainRef.current.setRangeText(`{${selected}} `, pos.caret - name.length - 1, pos.caret, "end");
+        setPos(null);
+        setIndex(0);
+    };
+    React.useImperativeHandle(ref, () => {
+        var _a, _b;
+        return (_b = (_a = mainRef.current) === null || _a === void 0 ? void 0 : _a.parentElement) === null || _b === void 0 ? void 0 : _b.querySelector("textarea");
+    }, [mainRef.current]);
+    return (React.createElement("div", { style: Object.assign({ width: "100%", fontSize: "inherit", display: "flex", flexDirection: "column" }, (style !== null && style !== void 0 ? style : {})) },
+        React.createElement(L, Object.assign({ ref: mainRef }, props, { style: { width: "100%", border: "0px", fontSize: "inherit", resize: "none", outline: "0px" }, onChange: (e) => {
+                var _a;
+                setText(e.target.value);
+                (_a = props.onChange) === null || _a === void 0 ? void 0 : _a.call(props, e);
+            }, value: value !== null && value !== void 0 ? value : text, autoHeight: autoHeight, rows: rows, onKeyDown: (e) => {
+                if (!pos || !filtered.length)
+                    return;
+                switch (e.code) {
+                    case "ArrowUp":
+                        e.preventDefault();
+                        const nextIndex = index <= 0 ? filtered.length - 1 : index - 1;
+                        setIndex(nextIndex);
+                        break;
+                    case "ArrowDown":
+                        e.preventDefault();
+                        const prevIndex = index >= filtered.length - 1 ? 0 : index + 1;
+                        setIndex(prevIndex);
+                        break;
+                    case "Enter":
+                        e.preventDefault();
+                        complete(index);
+                        break;
+                    case "Escape":
+                        e.preventDefault();
+                        setPos(null);
+                        setIndex(0);
+                        break;
+                }
+            }, onSelectionChange: (r) => {
+                if (r.focused && MENTION_REG.test(text.slice(0, r.selectionStart))) {
+                    setPos({
+                        top: r.top + r.height,
+                        left: r.left,
+                        caret: r.selectionStart,
+                    });
+                    setIndex(0);
+                }
+                else {
+                    setPos(null);
+                    setIndex(0);
+                }
+            } }), mentionRenderer(filtered)),
+        pos &&
+            filtered.length > 0 &&
+            createPortal(React.createElement(MenuVariables, { top: pos.top, left: pos.left, variables: filtered, index: index, complete: complete }), document.body)));
+});
+const InputField = (_a) => {
+    var _b, _c, _d, _e, _f, _g, _h;
+    var { required = false, label, value = {
+        type: "text",
+        default: "",
+        value: "",
+    }, autoComplete, helperText, disabled, multiline, rows = 1, placeholder, onMutate, fullWidth = true } = _a, props = __rest(_a, ["required", "label", "value", "autoComplete", "helperText", "disabled", "multiline", "rows", "placeholder", "onMutate", "fullWidth"]);
     const id = useId();
-    return (React.createElement(React.Fragment, null, (value === null || value === void 0 ? void 0 : value.type) === "boolean" ? (React.createElement(FormControl, { disabled: disabled, fullWidth: true, size: "small", sx: {
+    const { getVariables } = React.useContext(NodeContext);
+    const [defaultValue, setDefaultValue] = useState((_b = value === null || value === void 0 ? void 0 : value.default) !== null && _b !== void 0 ? _b : ((value === null || value === void 0 ? void 0 : value.type) === "boolean" ? false : (value === null || value === void 0 ? void 0 : value.type) === "number" ? 0 : ""));
+    const [currentValue, setCurrentValue] = useState(value === null || value === void 0 ? void 0 : value.value);
+    useEffect(() => {
+        if ((value === null || value === void 0 ? void 0 : value.value) === currentValue)
+            return;
+        setCurrentValue((p) => {
+            var _a;
+            return (_a = value === null || value === void 0 ? void 0 : value.value) !== null && _a !== void 0 ? _a : p;
+        });
+    }, [value === null || value === void 0 ? void 0 : value.value]);
+    const toChange = (v) => {
+        setCurrentValue(() => v);
+        onMutate === null || onMutate === void 0 ? void 0 : onMutate(Object.assign({ required, label, value: Object.assign(Object.assign({}, value), { value: v }), autoComplete, helperText, disabled, multiline, rows, placeholder }, props));
+    };
+    return (React.createElement(React.Fragment, null, (value === null || value === void 0 ? void 0 : value.type) === "boolean" ? (React.createElement(FormControl, { disabled: disabled, fullWidth: fullWidth, size: "small", sx: {
             margin: "5px 0px",
         } },
         label && React.createElement(InputLabel, { id: id }, label),
-        React.createElement(Select, { labelId: id, label: label, defaultValue: (value === null || value === void 0 ? void 0 : value.default) ? 1 : 0 },
-            React.createElement(MenuItem, { value: 1 }, "True"),
-            React.createElement(MenuItem, { value: 0 }, "False")),
-        helperText && React.createElement(FormHelperText, null, helperText))) : (React.createElement(TextField, { required: required, label: label, defaultValue: value === null || value === void 0 ? void 0 : value.default, type: value === null || value === void 0 ? void 0 : value.type, autoComplete: autoComplete, helperText: helperText, disabled: disabled, multiline: multiline, rows: rows, placeholder: placeholder, fullWidth: true, size: "small", sx: {
+        React.createElement(Select, { labelId: id, label: label, value: currentValue !== undefined ? (currentValue ? "1" : "0") : defaultValue ? "1" : "0", onChange: (e) => {
+                toChange(e.target.value === "1");
+            } },
+            React.createElement(MenuItem, { value: "1" }, "True"),
+            React.createElement(MenuItem, { value: "0" }, "False")),
+        helperText && React.createElement(FormHelperText, null, helperText))) : (React.createElement(TextField, { onChange: (e) => {
+            const v = (value === null || value === void 0 ? void 0 : value.type) === "number" ? parseFloat(e.target.value) : e.target.value;
+            toChange(v);
+        }, required: required, label: label, type: (value === null || value === void 0 ? void 0 : value.type) === "datetime" ? "datetime-local" : value === null || value === void 0 ? void 0 : value.type, value: currentValue !== null && currentValue !== void 0 ? currentValue : defaultValue, autoComplete: autoComplete, helperText: helperText, disabled: disabled, multiline: ["text"].includes((_c = value === null || value === void 0 ? void 0 : value.type) !== null && _c !== void 0 ? _c : "text") || multiline, rows: rows, placeholder: placeholder, fullWidth: fullWidth, size: "small", sx: {
             margin: "5px 0px",
-        } }))));
+        }, InputLabelProps: {
+            shrink: ["number", "datetime"].includes((_d = value === null || value === void 0 ? void 0 : value.type) !== null && _d !== void 0 ? _d : "text") ? true : undefined,
+        }, InputProps: ["text"].includes((_e = value === null || value === void 0 ? void 0 : value.type) !== null && _e !== void 0 ? _e : "text")
+            ? {
+                inputComponent: TextareaVariables,
+                inputProps: {
+                    variables: getVariables(),
+                    rows,
+                },
+            }
+            : (value === null || value === void 0 ? void 0 : value.type) === "number"
+                ? {
+                    inputProps: {
+                        max: (_f = value.max) !== null && _f !== void 0 ? _f : Infinity,
+                        min: (_g = value.min) !== null && _g !== void 0 ? _g : -Infinity,
+                        step: (_h = value.step) !== null && _h !== void 0 ? _h : 1,
+                    },
+                }
+                : {} }))));
 };
 
-const Condition = ({ type }) => {
+const ConditionField = ({ type }) => {
     return React.createElement(React.Fragment, null);
 };
 
-const RenderNodeDeclarations = ({ declarations }) => {
-    return (React.createElement(React.Fragment, null, declarations.map((declaration, index) => {
-        return (React.createElement(React.Fragment, { key: index }, declaration.type === "condition" ? React.createElement(Condition, Object.assign({}, declaration)) : declaration.type === "input" ? React.createElement(Input, Object.assign({}, declaration)) : null));
+const RenderNodeFields = ({ id, node, onChange }) => {
+    const log = useContext(NodeLogsContext);
+    const fieldsRef = useRef(node.fields);
+    const time = useRef();
+    const verify = () => {
+        clearTimeout(time.current);
+        time.current = setTimeout(() => {
+            log.clear();
+            if (typeof node.validate === "function") {
+                const erros = node.validate();
+                (Array.isArray(erros) ? erros : [erros]).forEach(({ type, message }) => {
+                    log[type](message);
+                });
+            }
+        }, 100);
+    };
+    const byChange = (index) => (value) => {
+        clearTimeout(time.current);
+        time.current = setTimeout(() => {
+            var _a;
+            fieldsRef.current[index] = Object.assign(Object.assign({}, fieldsRef.current[index]), value);
+            if (typeof fieldsRef.current[index].onChange === "function") {
+                fieldsRef.current[index] = fieldsRef.current[index].onChange(fieldsRef.current[index]);
+            }
+            node.fields = fieldsRef.current;
+            (_a = node.update) === null || _a === void 0 ? void 0 : _a.call(node);
+            onChange === null || onChange === void 0 ? void 0 : onChange(fieldsRef.current);
+            fieldsRef.current = node.getFields();
+            verify();
+        }, 100);
+    };
+    useEffect(() => {
+        fieldsRef.current = node.fields;
+        verify();
+    }, [id, node]);
+    return (React.createElement(React.Fragment, null, fieldsRef.current.map((field, index) => {
+        return (React.createElement(React.Fragment, { key: index }, field.type === "condition" ? (React.createElement(ConditionField, Object.assign({}, field))) : field.type === "variable" ? (React.createElement(VariableField, Object.assign({}, field, { byId: id, onMutate: byChange(index) }))) : field.type === "input" ? (React.createElement(InputField, Object.assign({}, field, { onMutate: byChange(index) }))) : null));
     })));
 };
 
-const ActionNode = ({ id, name, onAdd, onRemove }) => {
-    var _a;
-    const { registerNodes } = useContext(BuilderContext);
-    const [show, setShow] = useState(false);
-    const { color = "#424242", icon, title = "Start", declarations } = (_a = registerNodes[name]) !== null && _a !== void 0 ? _a : {};
+const ActionNode = ({ node, onRemove, onChange, onExpanded, isEditable = true, style, isContent = true, fullWidth = false }) => {
+    var _a, _b, _c, _d;
+    const { id, fields, isCollapsed, color: _color, icon: _icon, title = "Start", category: c = "other" } = node;
+    const { categories, layout = "vertical" } = useContext(BuilderContext);
+    const fieldsRef = useRef(fields !== null && fields !== void 0 ? fields : []);
+    const [show, setShow] = useState(!isCollapsed);
+    const category = Array.isArray(c) ? c : [c];
     const handleNodeClick = () => { };
-    return (React.createElement("div", { className: `flow-ui-node` },
-        React.createElement("div", { className: "flow-ui-node_item flow-ui-node__content win2dp radius5", onClick: handleNodeClick, style: { minWidth: show ? "400px" : undefined } },
-            React.createElement(HeaderNode, { icon: icon && typeof icon !== "string" ? (icon) : (React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiMapMarker, size: 1 })), color: color, actions: [
-                    {
-                        icon: (React.createElement(Icon$1, { path: mdiClose, size: 1 })),
-                        action: () => {
-                            onRemove === null || onRemove === void 0 ? void 0 : onRemove(id);
+    const toChange = () => {
+        node.fields = fieldsRef.current;
+        node.collapsed = !show;
+        onChange === null || onChange === void 0 ? void 0 : onChange(node);
+    };
+    useEffect(() => {
+        toChange();
+        onExpanded === null || onExpanded === void 0 ? void 0 : onExpanded(show);
+    }, [show]);
+    const color = (_b = (Array.isArray(category) && category[0] in categories && !_color ? (_a = categories[category[0]]) === null || _a === void 0 ? void 0 : _a.color : _color)) !== null && _b !== void 0 ? _b : "#424242";
+    const icon = (_d = (Array.isArray(category) && category[0] in categories && !_icon ? (_c = categories[category[0]]) === null || _c === void 0 ? void 0 : _c.icon : _icon)) !== null && _d !== void 0 ? _d : mdiMapMarker;
+    const showContent = show && isContent;
+    return (React.createElement(NodeLogsProvider, null,
+        React.createElement("div", { className: `flow-ui-node`, style: Object.assign(Object.assign({ zIndex: 1 }, (style !== null && style !== void 0 ? style : {})), { width: fullWidth && layout !== "horizontal" ? "100%" : undefined }) },
+            React.createElement("div", { className: `flow-ui-node_item flow-ui-node__content ${showContent ? "show" : "hide"} win2dp radius5`, onClick: handleNodeClick, style: {
+                    minWidth: showContent ? "400px" : "250px",
+                    width: fullWidth && layout !== "horizontal" ? "100%" : showContent ? undefined : "250px",
+                } },
+                React.createElement(HeaderNode, { icon: icon && typeof icon !== "string" ? (icon) : (React.createElement(Icon$1, { path: typeof icon === "string" ? icon : mdiPuzzle, size: 1 })), color: color, actions: [
+                        {
+                            label: show ? "Minimize" : "Expand",
+                            action: () => {
+                                setShow(!show);
+                            },
+                            icon: show ? mdiUnfoldLessHorizontal : mdiUnfoldMoreHorizontal,
                         },
-                        label: "Remove",
-                    },
-                ], onClick: () => setShow(!show) }, title),
-            show && (React.createElement(BodyNode, { style: {
-                    flexDirection: "column",
-                    gap: "10px",
-                } }, Array.isArray(declarations) && React.createElement(RenderNodeDeclarations, { declarations: declarations })))),
-        React.createElement(SplitLine, null),
-        React.createElement(AddButton, { onAdd: onAdd })));
+                    ], tools: isEditable
+                        ? [
+                            {
+                                label: "Rename",
+                                action: () => { },
+                                icon: mdiPencil,
+                                disabled: true,
+                            },
+                            {
+                                label: "Remove",
+                                action: () => {
+                                    onRemove === null || onRemove === void 0 ? void 0 : onRemove(id);
+                                },
+                                icon: mdiDelete,
+                            },
+                        ]
+                        : undefined, onClick: () => setShow(!show) }, title),
+                React.createElement(BodyNode, { style: {
+                        flexDirection: "column",
+                        gap: "10px",
+                    } }, Array.isArray(fieldsRef.current) && (React.createElement(RenderNodeFields, { id: id, node: node, onChange: (d) => {
+                        fieldsRef.current = d;
+                        toChange();
+                    } })))))));
+};
+
+const ConditionNode = ({ node, onRemove, onChange, onExpanded }) => {
+    const { isCollapsed, color: _color, icon: _icon, children } = node;
+    const update = useUpdate();
+    useContext(BuilderContext);
+    const [show, setShow] = useState(!isCollapsed);
+    const toChange = () => {
+        onChange === null || onChange === void 0 ? void 0 : onChange(node);
+    };
+    useEffect(() => {
+        node.collapsed = !show;
+        toChange();
+        onExpanded === null || onExpanded === void 0 ? void 0 : onExpanded(show);
+    }, [show]);
+    return (React.createElement(React.Fragment, null,
+        React.createElement(ActionNode, { node: node, onRemove: onRemove, onChange: (node) => {
+                toChange();
+            }, onExpanded: (expanded) => {
+                setShow(expanded);
+            } }),
+        show && (React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "flow-ui-branch-node__conditions", style: {
+                    // borderColor: lineColor,
+                    marginTop: "-25px",
+                    zIndex: 0,
+                    paddingTop: "0px",
+                    borderWidth: "0px",
+                } }, node.children.map((n, index, self) => {
+                const coverIndexClassName = index === 0 ? "cover-first" : index === self.length - 1 ? "cover-last" : "cover-middle";
+                const onAdd = (i) => (newNode) => {
+                    const start = n.children.slice(0, i);
+                    const end = n.children.slice(i);
+                    node.children[index].children = [...start, newNode, ...end];
+                    update();
+                    toChange();
+                };
+                const onRemove = (id) => {
+                    const i = n.children.findIndex((node) => node.id === id);
+                    n.children.splice(i, 1);
+                    node.children[index] = n;
+                    update();
+                    toChange();
+                };
+                return (React.createElement("div", { className: "flow-ui-node flow-ui-condition-node", key: n.id },
+                    React.createElement(CoverLine, { className: `cover-condition-start ${coverIndexClassName}` }),
+                    React.createElement("div", { className: "flow-ui-node" },
+                        React.createElement(SplitLine, { minSpace: 35 }),
+                        React.createElement(ActionNode, { node: n, isEditable: false, isContent: false, fullWidth: true, onExpanded: (expanded) => {
+                                node.children[index].setCollapsed(!expanded);
+                                update();
+                                toChange();
+                            } }),
+                        n.isCollapsed ? (React.createElement(FillLine, null)) : (React.createElement(React.Fragment, null,
+                            React.createElement(SplitLine, null),
+                            React.createElement(AddButton, { isEnd: n.children.length === 0, fillLine: n.children.length === 0, onAdd: onAdd(0) }),
+                            n.children.map((child, i, self) => {
+                                return (React.createElement(RenderNode, { key: i, node: child, onRemove: onRemove, onChange: (n) => {
+                                        node.children[index].children[i] = n;
+                                        toChange();
+                                    }, onAdd: onAdd(i + 1), isEnd: i === self.length - 1 }));
+                            })))),
+                    React.createElement(CoverLine, { className: `cover-condition-end ${coverIndexClassName}` })));
+            }))))));
 };
 
 var index = /*#__PURE__*/Object.freeze({
     __proto__: null,
     ActionNode: ActionNode,
     BodyNode: BodyNode,
+    ConditionNode: ConditionNode,
     EndNode: EndNode,
     HeaderNode: HeaderNode,
     OperationsNode: OperationsNode,
     StartNode: StartNode
 });
 
-const ListNodes = {};
-ListNodes["condition"] = {
-    type: "condition",
-    title: "Condition",
-    category: "control",
-    icon: mdiToggleSwitchOffOutline,
-    declarations: [],
-    keys: ["condition", "if", "else"],
-};
+class RegisterNode {
+    constructor(options) {
+        var _a;
+        this.options = options;
+        // Defina o tipo do bloco.
+        this.type = "action";
+        // Defina o nome do bloco.
+        this.name = "";
+        // Defina o titulo do bloco.
+        this.title = "";
+        // Defina a categoria do bloco.
+        this.category = [];
+        // Defina o ícone do bloco.
+        this.icon = "";
+        // Define a URL de ajuda do bloco.
+        this.helpUrl = "";
+        // Define as chaves de busca do bloco.
+        this.keys = [];
+        // Define se o bloco é operável.
+        this.operable = true;
+        // Define os filhos do bloco.
+        this.children = [];
+        // Define se o bloco está colapsado.
+        this.collapsed = false;
+        // Define se o bloco pode ser deletado.
+        this.deletable = true;
+        // Campos personalizados do bloco.
+        this.fields = [];
+        // Valores dos campos personalizados.
+        this.fieldsInitialProps = {};
+        // Defina se outro bloco pode ser encadeado na parte superior deste bloco.
+        this.previousStatement = true;
+        // Uma string ou uma matriz de strings que contém os tipos de blocos que podem ser encadeados.
+        this.checkPreviousStatement = null;
+        // Defina se outro bloco pode ser encadeado na parte inferior deste bloco.
+        this.nextStatement = true;
+        // Uma string ou uma matriz de strings que contém os tipos de blocos que podem ser encadeados.
+        this.checkNextStatement = null;
+        // Define o texto de dica de ferramenta do bloco.
+        this.tooltip = "";
+        this.id = (_a = options.id) !== null && _a !== void 0 ? _a : uuidv4();
+        this.name = options.name;
+        this.generator = options.generator ? options.generator.bind(this, this) : undefined;
+        this.validate = options.validate ? options.validate.bind(this, this) : undefined;
+        this.update = () => {
+            this.fieldsInitialProps = Object.fromEntries(this.fields.map((_a) => {
+                var { fieldName, type, hidden, onChange, tryOut } = _a, props = __rest(_a, ["fieldName", "type", "hidden", "onChange", "tryOut"]);
+                return [fieldName, JSON.parse(JSON.stringify(props))];
+            }));
+            if (typeof options.update === "function") {
+                options.update.apply(this, [this]);
+            }
+        };
+        this.init();
+    }
+    init() {
+        this.options.init.call(this, this);
+        if (this.type === "condition") {
+            if (this.children.findIndex(({ name }) => name === "if") < 0) {
+                this.children.unshift(new RegisterNode({
+                    name: "if",
+                    init(node) {
+                        node.setType("action");
+                        node.setTitle("If yes");
+                        node.setIcon(mdiCheckCircle);
+                        node.setColour("#4CAF50");
+                        node.setCategory("control");
+                        node.setOperable(false);
+                    },
+                }));
+            }
+            if (this.children.findIndex(({ name }) => name === "else") < 0) {
+                this.children.push(new RegisterNode({
+                    name: "else",
+                    init(node) {
+                        node.setType("action");
+                        node.setTitle("If no");
+                        node.setIcon(mdiCloseCircle);
+                        node.setColour("#F44336");
+                        node.setCategory("control");
+                        node.setOperable(false);
+                    },
+                }));
+            }
+        }
+    }
+    createNode(options = {}) {
+        return new RegisterNode(Object.assign(Object.assign({}, this.options), options));
+    }
+    toJSON() {
+        return {
+            name: this.name,
+            id: this.id,
+            children: this.children.map((child) => child.toJSON()),
+            collapsed: this.collapsed,
+            deletable: this.deletable,
+            fields: this.fieldsInitialProps,
+        };
+    }
+    static fromJSON(json, nodes) {
+        return json
+            .map(({ name, collapsed, deletable, children, fields, id }) => {
+            var _a;
+            const node = (_a = nodes.find((node) => node.name === name)) === null || _a === void 0 ? void 0 : _a.createNode({ id });
+            if (!node) {
+                return null;
+            }
+            node.collapsed = collapsed !== null && collapsed !== void 0 ? collapsed : node.collapsed;
+            node.deletable = deletable !== null && deletable !== void 0 ? deletable : node.deletable;
+            node.fieldsInitialProps = fields;
+            node.children = RegisterNode.fromJSON(children, nodes);
+            node.init();
+            return node;
+        })
+            .filter((node) => node !== null);
+    }
+    get isCollapsed() {
+        return this.collapsed;
+    }
+    /**
+     * Definir se o bloco está colapsado.
+     * @param collapsed Verdadeiro se o bloco estiver colapsado.
+     */
+    setCollapsed(collapsed) {
+        this.collapsed = collapsed;
+    }
+    /**
+     * Defina o tipo do bloco.
+     * @param type O tipo do bloco.
+     */
+    setType(type) {
+        this.type = type;
+    }
+    /**
+     * Defina o titulo do bloco.
+     * @param title O título do bloco.
+     */
+    setTitle(title) {
+        this.title = title;
+    }
+    /**
+     * Defina as chaves de busca do bloco.
+     * @param keys As chaves de busca do bloco.
+     */
+    setKeys(keys) {
+        this.keys = keys;
+    }
+    /**
+     * Defina o ícone do bloco.
+     * @param icon O ícone do bloco.
+     */
+    setIcon(icon) {
+        this.icon = icon;
+    }
+    /**
+     * Defina a categoria do bloco.
+     * @param category Uma string ou uma matriz de strings de categorias do bloco.
+     */
+    setCategory(category) {
+        this.category = Array.isArray(category) ? category : [category];
+    }
+    /**
+     * Defina a cor do bloco.
+     * @param colour Valor de matiz HSV (0 a 360) ou string #RRGGBB.
+     */
+    setColour(colour) {
+        this.color = parseBlockColour(colour).hex;
+    }
+    /**
+     * Define a URL de ajuda do bloco.
+     * @param url URL de ajuda do bloco.
+     */
+    setHelpUrl(url) {
+        this.helpUrl = url;
+    }
+    /**
+     * Define se o bloco é operável.
+     * @param operable Verdadeiro se o bloco for operável.
+     */
+    setOperable(operable) {
+        this.operable = operable;
+    }
+    /**
+     * Define um texto de dica de ferramenta para o bloco.
+     * @param tooltip O texto de dica de ferramenta.
+     */
+    setTooltip(tooltip) {
+        this.tooltip = tooltip;
+    }
+    /**
+     * Define se o bloco pode ser deletado.
+     * @param deletable Verdadeiro se o bloco puder ser deletado.
+     */
+    setDeletable(deletable) {
+        this.deletable = deletable;
+    }
+    /**
+     * Acrescenta a linha de entrada fornecida.
+     *
+     * Permite que entradas personalizadas sejam anexadas ao bloco.
+     * @param fieldName O nome do campo.
+     * @param input O campo de entrada.
+     */
+    appendInput(fieldName, input) {
+        var _a;
+        const beffore = (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+        this.fields[this.findFieldIndex(fieldName)] = joinObjects(beffore, input);
+    }
+    /**
+     * Adiciona uma label ao bloco.
+     * @param fieldName O nome do campo.
+     * @param label O texto a inserir ao bloco.
+     */
+    appendField(fieldName, label) {
+        var _a;
+        (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+    }
+    appendFieldVariable(fieldName, name, expressionType) {
+        var _a;
+        const beffore = (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+        this.fields[this.findFieldIndex(fieldName)] = joinObjects(beffore, {
+            fieldName,
+            type: "variable",
+            name,
+            expressionType,
+        });
+    }
+    /**
+     * Adiciona um campo de texto ao bloco.
+     * @param fieldName O nome do campo.
+     * @param label O texto que aparece ao lado do campo.
+     * @param value O valor padrão do campo.
+     * @param type O tipo do campo.
+     */
+    appendFieldTextInput(fieldName, label, value, type) {
+        var _a;
+        const beffore = (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+        this.fields[this.findFieldIndex(fieldName)] = joinObjects(beffore, {
+            fieldName,
+            type: "input",
+            label,
+            value: {
+                type: type !== null && type !== void 0 ? type : "text",
+                default: value,
+            },
+        });
+    }
+    /**
+     * Adiciona um campo numérico ao bloco.
+     * @param fieldName O nome do campo.
+     * @param label O texto que aparece ao lado do campo.
+     * @param value O valor padrão do campo.
+     * @param min O valor mínimo que o campo pode ter.
+     * @param max O valor máximo que o campo pode ter.
+     * @param step O valor do passo do campo.
+     */
+    appendFieldNumber(fieldName, label, value, min, max, step) {
+        var _a;
+        const beffore = (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+        this.fields[this.findFieldIndex(fieldName)] = joinObjects(beffore, {
+            fieldName,
+            type: "input",
+            label,
+            value: {
+                type: "number",
+                default: value,
+                min: min !== null && min !== void 0 ? min : undefined,
+                max: max !== null && max !== void 0 ? max : undefined,
+                step: step !== null && step !== void 0 ? step : undefined,
+            },
+        });
+    }
+    /**
+     * Adiciona um campo booleano ao bloco.
+     * @param fieldName O nome do campo.
+     * @param label O texto que aparece ao lado do campo.
+     * @param value O valor padrão do campo.
+     */
+    appendFieldBoolean(fieldName, label, value) {
+        var _a;
+        const beffore = (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+        this.fields[this.findFieldIndex(fieldName)] = joinObjects(beffore, {
+            fieldName,
+            type: "input",
+            label,
+            value: {
+                type: "boolean",
+                default: value,
+            },
+        });
+    }
+    /**
+     * Adiciona um campo de data ao bloco.
+     * @param fieldName O nome do campo.
+     * @param label O texto que aparece ao lado do campo.
+     * @param value O valor padrão do campo.
+     */
+    appendFieldDate(fieldName, label, value) {
+        var _a;
+        const beffore = (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+        this.fields[this.findFieldIndex(fieldName)] = joinObjects(beffore, {
+            fieldName,
+            type: "input",
+            label,
+            value: {
+                type: "date",
+                default: value,
+            },
+        });
+    }
+    /**
+     * Adiciona um campo de seleção ao bloco.
+     * @param fieldName O nome do campo.
+     * @param items Os itens que aparecem no campo.
+     * @param label O texto que aparece ao lado do campo.
+     * @param value O valor padrão do campo.
+     */
+    appendFieldDropdown(fieldName, items, label, value) {
+        var _a;
+        (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+    }
+    /**
+     * Adiciona um campo de caixa de seleção ao bloco.
+     * @param fieldName O nome do campo.
+     * @param label O texto que aparece ao lado do campo.
+     * @param value O valor padrão do campo.
+     */
+    appendFieldCheckbox(fieldName, label, value) {
+        var _a;
+        (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+    }
+    /**
+     * Adiciona um campo de imagem ao bloco.
+     * @param fieldName O nome do campo.
+     * @param src O URL da imagem.
+     * @param width A largura da imagem.
+     * @param height A altura da imagem.
+     * @param alt O texto alternativo da imagem.
+     */
+    appendFieldImage(fieldName, src, width, height, alt) {
+        var _a;
+        (_a = this.getField(fieldName)) !== null && _a !== void 0 ? _a : {};
+    }
+    /**
+     * Obtenha os campos do bloco.
+     * @returns Os campos do bloco.
+     */
+    getFields() {
+        return this.fields.filter(({ hidden = false }) => !hidden);
+    }
+    findFieldIndex(fieldName) {
+        const index = this.fields.findIndex((field) => field.fieldName === fieldName);
+        return index < 0 ? this.fields.length : index;
+    }
+    /**
+     * Obtenha um campo.
+     * @param fieldName O nome do campo.
+     */
+    getField(fieldName) {
+        var _a;
+        const inital = (_a = this.fieldsInitialProps[fieldName]) !== null && _a !== void 0 ? _a : {};
+        const field = this.fields.find((field) => field.fieldName === fieldName);
+        return !field ? undefined : joinObjects(inital, field);
+    }
+    /**
+     * Defina o valor de um campo.
+     * @param fieldName O nome do campo.
+     * @param value O valor do campo.
+     */
+    setFieldValue(fieldName, value) {
+        const index = this.fields.findIndex((field) => field.fieldName === fieldName);
+        if (index >= 0) {
+            this.fields[index].value = value;
+        }
+    }
+    /**
+     * Obtenha o valor de um campo.
+     * @param fieldName O nome do campo.
+     */
+    getFieldValue(fieldName) {
+        var _a;
+        const { value } = (_a = this.fields.find((field) => field.fieldName === fieldName)) !== null && _a !== void 0 ? _a : {};
+        return value !== null && value !== void 0 ? value : null;
+    }
+    /**
+     * Ocultar um campo.
+     * @param fieldName O nome do campo.
+     */
+    hideField(fieldName) {
+        const index = this.fields.findIndex((field) => field.fieldName === fieldName);
+        if (index >= 0) {
+            this.fields[index].hidden = true;
+        }
+    }
+    /**
+     * Exibir um campo.
+     * @param fieldName O nome do campo.
+     */
+    showField(fieldName) {
+        const index = this.fields.findIndex((field) => field.fieldName === fieldName);
+        if (index >= 0) {
+            this.fields[index].hidden = false;
+        }
+    }
+    /**
+     * Defina se outro bloco pode ser encadeado na parte superior deste bloco.
+     * @param newBoolean Verdadeiro se puder haver uma afirmação anterior.
+     * @param opt_check Opcional, uma string ou uma matriz de strings que contém os tipos de blocos que podem ser encadeados.
+     */
+    setPreviousStatement(newBoolean, opt_check) {
+        this.previousStatement = newBoolean;
+        if (opt_check) {
+            this.checkPreviousStatement = Array.isArray(opt_check) ? opt_check : [opt_check];
+        }
+    }
+    /**
+     * Defina se outro bloco pode ser encadeado na parte inferior deste bloco.
+     * @param newBoolean Verdadeiro se puder haver uma próxima afirmação.
+     * @param opt_check Opcional, uma string ou uma matriz de strings que contém os tipos de blocos que podem ser encadeados.
+     */
+    setNextStatement(newBoolean, opt_check) {
+        this.nextStatement = newBoolean;
+        if (opt_check) {
+            this.checkNextStatement = Array.isArray(opt_check) ? opt_check : [opt_check];
+        }
+    }
+}
 
-const Build = () => {
+const ListNodes = [];
+ListNodes.push(new RegisterNode({
+    name: "condition",
+    init() {
+        this.setType("condition");
+        this.setTitle("Condition");
+        this.setCategory("control");
+        this.setKeys(["condition", "if", "else"]);
+    },
+}));
+ListNodes.push(new RegisterNode({
+    name: "variable-initialize",
+    init() {
+        this.setType("action");
+        this.setTitle("Initialize Variable");
+        this.setCategory("variable");
+        this.appendFieldVariable("variable");
+        this.setKeys(["variable", "initialize", "var", "let", "const"]);
+    },
+    validate() {
+        var _a;
+        const messages = [];
+        const { name = "", definition = "var", value } = (_a = this.getField("variable")) !== null && _a !== void 0 ? _a : {};
+        if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) {
+            messages.push({
+                type: "error",
+                message: 'Variable name is not valid! Remember, a valid variable must only begin with a lowercase letter, uppercase letter, "_" or "$" followed by a lowercase letter, uppercase letter, number, "_" or "$".',
+            });
+        }
+        else if ((name !== null && name !== void 0 ? name : "").length <= 1) {
+            messages.push({
+                type: "info",
+                message: "It is recommended that you define a variable name with more than one character.",
+            });
+        }
+        if (definition === "const" && value === undefined) {
+            messages.push({
+                type: "warning",
+                message: 'The variable was defined as "const", but no value was provided!',
+            });
+        }
+        return messages;
+    },
+}));
+
+const RenderNode = ({ node, onRemove, onChange, onAdd, isEnd = false }) => {
+    return (React.createElement(React.Fragment, { key: node.id },
+        node.type === "action" ? (React.createElement(ActionNode, { key: node.id, node: node, onRemove: onRemove, onChange: onChange })) : node.type === "condition" ? (React.createElement(ConditionNode, { key: node.id, node: node, onRemove: onRemove, onChange: onChange })) : null,
+        React.createElement(SplitLine, null),
+        React.createElement(AddButton, { onAdd: onAdd, isEnd: isEnd, fillLine: isEnd })));
+};
+const MainNode = new RegisterNode({ name: "main", init() { } });
+const getGridImage = (options) => {
+    const { spacing = 20, length = 5, width = 1, colour = "#757575" } = options;
+    const positionTop = spacing / 2 - length / 2 + width / 2;
+    const positionBottom = spacing / 2 + length / 2 + width / 2;
+    const positionLeft = spacing / 2 + width / 2;
+    const positionRight = spacing / 2 + width / 2;
+    return ("data:image/svg+xml;base64," +
+        btoa(`<svg width="${spacing}px" height="${spacing}px" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="gridPattern" patternUnits="userSpaceOnUse" width="${spacing}" height="${spacing}">
+      <line stroke="${colour}" stroke-width="${width}" x1="${positionTop}" y1="${positionLeft}" x2="${positionBottom}" y2="${positionRight}"></line>
+      <line stroke="${colour}" stroke-width="${width}" x1="${positionLeft}" y1="${positionTop}" x2="${positionRight}" y2="${positionBottom}"></line>
+    </pattern>
+  </defs>
+  <rect width="${spacing}px" height="${spacing}px" fill="url(#gridPattern)" />
+</svg>
+`));
+};
+const Build = ({ flow = [], onChange, variables: v = [] }) => {
     var _a;
-    const { layout = "vertical" } = (_a = React.useContext(BuilderContext)) !== null && _a !== void 0 ? _a : {};
-    const [nodes, setNodes] = React.useState([]);
-    const onAdd = (node) => {
-        setNodes([...nodes, node]);
+    const mainDiv = useRef(null);
+    const update = useUpdate();
+    const { layout = "vertical", grid, registerNodes } = (_a = React.useContext(BuilderContext)) !== null && _a !== void 0 ? _a : {};
+    const beforeNodes = React.useContext(NodeContext);
+    const nodeRef = useRef(MainNode.createNode());
+    const nodes = useRef([]);
+    const flowRef = useRef(flow);
+    const [variables, setVariables] = React.useState([]);
+    useEffect(() => {
+        nodes.current = RegisterNode.fromJSON(flowRef.current.filter(({ name }) => ["start", "end"].includes(name) !== true), registerNodes);
+        update();
+    }, [flowRef.current, registerNodes]);
+    const toChange = () => {
+        nodeRef.current.children = [
+            new RegisterNode({
+                name: "start",
+                init(node) {
+                    node.setType("start");
+                },
+            }),
+            ...nodes.current,
+            new RegisterNode({
+                name: "end",
+                init(node) {
+                    node.setType("end");
+                },
+            }),
+        ];
+        onChange === null || onChange === void 0 ? void 0 : onChange(nodeRef.current.toJSON().children);
+    };
+    useEffect(() => {
+        const time = setInterval(() => {
+            var _a;
+            const { spacing = 20 } = grid;
+            const startNode = (_a = mainDiv.current) === null || _a === void 0 ? void 0 : _a.querySelector(".flow-ui-start-node");
+            if (!mainDiv.current || !startNode) {
+                return;
+            }
+            const { left, top, width, height } = startNode.getBoundingClientRect();
+            const positionX = (left % spacing) + ((width / 2) % spacing);
+            const positionY = (top % spacing) - ((height / 2) % spacing);
+            mainDiv.current.style.backgroundPositionX = `${positionX}px`;
+            mainDiv.current.style.backgroundPositionY = `${positionY}px`;
+        }, 10);
+        return () => {
+            clearInterval(time);
+        };
+    }, [grid, mainDiv.current]);
+    const onAdd = (index) => (node) => {
+        const start = nodes.current.slice(0, index);
+        const end = nodes.current.slice(index);
+        nodes.current = [...start, node, ...end];
+        toChange();
+        update();
     };
     const onRemove = (id) => {
-        setNodes(nodes.filter((node) => node.id !== id));
+        const index = nodes.current.findIndex((node) => node.id === id);
+        nodes.current.splice(index, 1);
+        toChange();
+        update();
     };
-    return (React.createElement("div", { className: "flow-ui-content" },
-        React.createElement("div", { className: `flow-ui flow-ui-${layout}`, style: { zoom: `${100}%` } },
-            React.createElement(StartNode, { onAdd: onAdd }),
-            nodes.map((node, index) => {
-                return (React.createElement(React.Fragment, { key: index }, node.type === "action" ? (React.createElement(ActionNode, Object.assign({}, node, { onAdd: onAdd, onRemove: onRemove }))) : null));
-            }),
-            React.createElement(EndNode, null))));
+    const gridOptions = { spacing: 20, length: 1, width: 1, colour: "#9e9e9e" };
+    return (React.createElement(NodeProvider, { value: {
+            node: nodeRef.current,
+            defineVariable: () => { },
+            getVariables: () => {
+                return v.concat(beforeNodes.getVariables(), variables);
+            },
+        } },
+        React.createElement("div", { ref: mainDiv, className: "flow-ui-content", style: {
+                backgroundImage: `url("${getGridImage(gridOptions)}")`,
+            } },
+            React.createElement("div", { className: `flow-ui flow-ui-${layout}`, style: { zoom: `${100}%` } },
+                React.createElement(StartNode, { onAdd: onAdd(0) }),
+                nodes.current.map((node, index) => {
+                    return (React.createElement(RenderNode, { key: index, node: node, onRemove: onRemove, onChange: (node) => {
+                            nodes.current[index] = node;
+                            toChange();
+                        }, onAdd: onAdd(index + 1) }));
+                }),
+                React.createElement(EndNode, null)))));
 };
 const ReactFlowUI = (_a) => {
-    var { className = "", style = {}, registerNodes = {} } = _a, options = __rest(_a, ["className", "style", "registerNodes"]);
+    var { className = "", style = {}, registerNodes = [], variables, flow = [], onChange } = _a, options = __rest(_a, ["className", "style", "registerNodes", "variables", "flow", "onChange"]);
     window.FileAnalyzer = FileAnalyzer;
-    return (React.createElement(BuilderProvider, { value: Object.assign(Object.assign({ lineColor: "#9e9e9e", spaceX: 15, spaceY: 15 }, options), { registerNodes: Object.assign(Object.assign({}, ListNodes), Object.fromEntries(Object.entries(registerNodes)
-                .filter(([key]) => {
-                return !(key in ListNodes);
-            })
-                .map(([key, value]) => {
-                var _a;
-                value.category = (_a = value.category) !== null && _a !== void 0 ? _a : "other";
-                value.category = Array.isArray(value.category) ? [...value.category, "other"] : [value.category];
-                return [key, value];
-            }))) }) },
-        React.createElement(Build, null)));
+    return (React.createElement(BuilderProvider, { value: Object.assign(Object.assign({ lineColor: "#9e9e9e", spaceX: 15, spaceY: 15 }, options), { registerNodes: [...ListNodes, ...registerNodes] }) },
+        React.createElement(Build, { variables: variables, flow: flow, onChange: onChange })));
 };
 
-export { AddButton, index$1 as Lines, index as Nodes, ReactFlowUI, ReactFlowUI as default };
+export { AddButton, index$1 as Lines, index as Nodes, ReactFlowUI, RegisterNode, ReactFlowUI as default };

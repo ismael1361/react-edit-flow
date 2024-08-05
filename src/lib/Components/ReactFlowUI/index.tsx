@@ -9,13 +9,14 @@ import "./styles.scss";
 import { SplitLine } from "../Lines";
 import AddButton from "../AddButton";
 import { useUpdate } from "../../Hooks";
-import RegisterNode from "../../RegisterNode";
+import RegisterNode, { RegisterNodeJSON } from "../../RegisterNode";
 
 interface IProps extends Partial<Omit<IFlowUiContext, "addAction" | "categories">> {
 	className?: string;
 	style?: any;
 	nodes?: RegisterNode[];
-	onChange?: (nodes: RegisterNode[]) => void;
+	onChange?: (flow: RegisterNodeJSON[]) => void;
+	flow?: RegisterNodeJSON[];
 }
 
 export const RenderNode: React.FC<INodeProps & { isEnd?: boolean }> = ({ node, onRemove, onChange, onAdd, isEnd = false }) => {
@@ -72,17 +73,29 @@ const getGridImage = (options: Partial<{ spacing: number; length: number; width:
 };
 
 const Build: React.FC<{
+	flow?: RegisterNodeJSON[];
+	onChange?: (flow: RegisterNodeJSON[]) => void;
 	variables?: Required<IVariableDefinition, "name">[];
-}> = ({ variables: v = [] }) => {
+}> = ({ flow = [], onChange, variables: v = [] }) => {
 	const mainDiv = useRef<HTMLDivElement>(null);
 	const update = useUpdate();
-	const { layout = "vertical", grid } = React.useContext(BuilderContext) ?? {};
+	const { layout = "vertical", grid, registerNodes } = React.useContext(BuilderContext) ?? {};
 	const beforeNodes = React.useContext(NodeContext);
 	const nodeRef = useRef<RegisterNode>(MainNode.createNode());
 	const nodes = useRef<RegisterNode[]>([]);
+	const flowRef = useRef<RegisterNodeJSON[]>(flow);
 	const [variables, setVariables] = React.useState<Required<IVariableDefinition, "name">[]>([]);
 
 	useEffect(() => {
+		nodes.current = RegisterNode.fromJSON(
+			flowRef.current.filter(({ name }) => ["start", "end"].includes(name) !== true),
+			registerNodes,
+		);
+
+		update();
+	}, [flowRef.current, registerNodes]);
+
+	const toChange = () => {
 		nodeRef.current.children = [
 			new RegisterNode({
 				name: "start",
@@ -98,7 +111,9 @@ const Build: React.FC<{
 				},
 			}),
 		];
-	}, [nodes.current]);
+
+		onChange?.(nodeRef.current.toJSON().children);
+	};
 
 	useEffect(() => {
 		const time = setInterval(() => {
@@ -127,12 +142,14 @@ const Build: React.FC<{
 		const start = nodes.current.slice(0, index);
 		const end = nodes.current.slice(index);
 		nodes.current = [...start, node, ...end];
+		toChange();
 		update();
 	};
 
 	const onRemove = (id: string) => {
 		const index = nodes.current.findIndex((node) => node.id === id);
 		nodes.current.splice(index, 1);
+		toChange();
 		update();
 	};
 
@@ -168,6 +185,7 @@ const Build: React.FC<{
 								onRemove={onRemove}
 								onChange={(node) => {
 									nodes.current[index] = node;
+									toChange();
 								}}
 								onAdd={onAdd(index + 1)}
 							/>
@@ -180,7 +198,7 @@ const Build: React.FC<{
 	);
 };
 
-const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNodes = [], variables, ...options }) => {
+const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNodes = [], variables, flow = [], onChange, ...options }) => {
 	(window as any).FileAnalyzer = FileAnalyzer;
 
 	return (
@@ -193,7 +211,11 @@ const ReactFlowUI: React.FC<IProps> = ({ className = "", style = {}, registerNod
 				registerNodes: [...ListNodes, ...registerNodes],
 			}}
 		>
-			<Build variables={variables} />
+			<Build
+				variables={variables}
+				flow={flow}
+				onChange={onChange}
+			/>
 		</BuilderProvider>
 	);
 };

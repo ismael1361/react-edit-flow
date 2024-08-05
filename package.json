@@ -25,7 +25,8 @@
 	"scripts": {
 		"start": "react-scripts start",
 		"build": "rollup --config",
-		"watch": "rollup --config --watch"
+		"watch": "rollup --config --watch",
+		"npm:publish": "npm run build && cd dist && npm publish"
 	},
 	"eslintConfig": {
 		"extends": [

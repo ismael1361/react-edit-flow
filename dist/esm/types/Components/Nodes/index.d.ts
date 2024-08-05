@@ -5,3 +5,4 @@ export { default as HeaderNode } from "./HeaderNode";
 export { default as BodyNode } from "./BodyNode";
 export { default as OperationsNode } from "./OperationsNode";
 export { default as ActionNode } from "./ActionNode";
+export { default as ConditionNode } from "./ConditionNode";
