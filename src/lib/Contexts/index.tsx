@@ -56,6 +56,12 @@ export interface IFlowUiContext {
 	lineColor: string;
 	spaceY: number;
 	spaceX: number;
+	grid: Partial<{
+		spacing: number;
+		length: number;
+		width: number;
+		colour: string;
+	}>;
 	nodeStyle: Partial<{
 		[k in INodesNames]: Partial<INodeStyle>;
 	}>;
@@ -71,6 +77,7 @@ const defaultBuilderContext: IFlowUiContext = {
 	lineColor: "black",
 	spaceX: 25,
 	spaceY: 25,
+	grid: {},
 	nodeStyle: {
 		...categoriesList,
 	},
