@@ -30,7 +30,9 @@ export default [
 				browser: true, // para importar dependências que são para o navegador
 				preferBuiltins: false, // para importar dependências que são para o navegador
 			}),
-			commonjs(),
+			commonjs({
+				exclude: "node_modules/process-es6",
+			}),
 			typescript({ tsconfig: "src/lib/tsconfig.json", sourceMap: true }),
 			scss({
 				fileName: "styles.css", // caminho onde o CSS será gerado
@@ -55,7 +57,9 @@ export default [
 				browser: true, // para importar dependências que são para o navegador
 				preferBuiltins: false, // para importar dependências que são para o navegador
 			}),
-			commonjs(),
+			commonjs({
+				exclude: "node_modules/process-es6",
+			}),
 			typescript({ tsconfig: "src/lib/tsconfig.json", sourceMap: true, declaration: true, declarationDir: "dist/esm/types" }),
 			scss({
 				fileName: "styles.css", // caminho onde o CSS será gerado
