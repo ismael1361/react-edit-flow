@@ -25,6 +25,7 @@ import {
 } from "@mdi/js";
 import InputField, { IInputValueType } from "./InputField";
 import { IVariableDefinition, Required } from "../Types";
+import { TextareaField } from "../Components";
 
 interface IVariableType {
 	icon: React.ReactNode;
@@ -164,7 +165,6 @@ const VariableField: React.FC<
 					<InputLabel id={id_01}>Def.</InputLabel>
 					<Select
 						labelId={id_01}
-						label="Age"
 						sx={{
 							"& > *": {
 								display: "flex",
@@ -316,6 +316,7 @@ const VariableField: React.FC<
 					}}
 				/>
 			</Box>
+			<TextareaField />
 		</>
 	);
 };

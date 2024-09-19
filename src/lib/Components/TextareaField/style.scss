@@ -1,0 +1,49 @@
+.TextareaField {
+    overflow: hidden;
+    overflow-y: auto;
+    width: 400px;
+    height: 300px;
+    position: relative;
+
+    .main {
+        width: 100%;
+        height: 100%;
+        min-height: 200px;
+        max-height: 600px;
+        resize: none;
+        outline: none;
+        border: none;
+        user-select: text !important;
+        cursor: text !important;
+
+        * {
+            display: inline-block;
+        }
+    }
+
+    .cursor {
+        position: absolute;
+        width: 2px;
+        height: 15px;
+        background-color: currentColor;
+        left: 0;
+        top: 0;
+        pointer-events: none;
+        animation: pulse 1s infinite;
+        opacity: 1;
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+    }
+}
