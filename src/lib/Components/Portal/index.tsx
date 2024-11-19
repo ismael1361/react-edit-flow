@@ -11,47 +11,80 @@ interface IMenuItem {
 	disabled?: boolean;
 }
 
+type position = "top" | "top-left" | "top-right" | "right" | "bottom-right" | "bottom" | "bottom-left" | "left" | "center";
+
+const getOrientation = (position: position) => {
+	const vertical = position.search("top") !== -1 ? "top" : position.search("bottom") !== -1 ? "bottom" : "center";
+	const horizontal = position.search("left") !== -1 ? "left" : position.search("right") !== -1 ? "right" : "center";
+	return { vertical, horizontal } as const;
+};
+
 const Portal: React.FC<{
 	reference?: HTMLElement | null;
-	position?: "top" | "bottom" | "left" | "right" | "center";
+	anchorOrigin?: position;
+	transformOrigin?: position;
 	children: ReactNode;
 	onClosed?: () => void;
 	show?: boolean;
-}> = ({ reference, position = "bottom", onClosed, children, show }) => {
+}> = ({ reference, anchorOrigin = "bottom-right", transformOrigin = "top-right", onClosed, children, show }) => {
 	const mainRef = useRef<HTMLDivElement>(null);
 
 	const getBoundingFragmentRect = (): {
 		top: number;
 		left: number;
-		width: number;
-		height: number;
 	} => {
-		if (!reference || !reference.getBoundingClientRect) return { top: 0, left: 0, width: 0, height: 0 };
+		if (!mainRef.current || !reference || !reference.getBoundingClientRect) return { top: 0, left: 0 };
 
-		let { top, left, width, height } = reference.getBoundingClientRect();
+		const refRect = reference.getBoundingClientRect();
+		const mainRect = mainRef.current.getBoundingClientRect();
+		const pos = { top: 0, left: 0 };
 
-		if (position === "top") {
-			top = top;
-			left = left + width / 2;
-		} else if (position === "bottom") {
-			top = top + height;
-			left = left + width / 2;
-		} else if (position === "left") {
-			top = top + height / 2;
-			left = left;
-		} else if (position === "right") {
-			top = top + height / 2;
-			left = left + width;
-		} else if (position === "center") {
-			top = top + height / 2;
-			left = left + width / 2;
+		const anchor = getOrientation(anchorOrigin);
+		const transform = getOrientation(transformOrigin);
+
+		switch (anchor.vertical) {
+			case "top":
+				pos.top = refRect.top;
+				break;
+			case "bottom":
+				pos.top = refRect.bottom;
+				break;
+			case "center":
+				pos.top = refRect.top + refRect.height / 2;
+				break;
 		}
-		return {
-			top,
-			left,
-			width,
-			height,
-		};
+
+		switch (transform.vertical) {
+			case "bottom":
+				pos.top -= mainRect.height;
+				break;
+			case "center":
+				pos.top -= mainRect.height / 2;
+				break;
+		}
+
+		switch (anchor.horizontal) {
+			case "left":
+				pos.left = refRect.left;
+				break;
+			case "right":
+				pos.left = refRect.left + refRect.width;
+				break;
+			case "center":
+				pos.left = refRect.left + refRect.width / 2;
+				break;
+		}
+
+		switch (transform.horizontal) {
+			case "right":
+				pos.left -= mainRect.width;
+				break;
+			case "center":
+				pos.left -= mainRect.width / 2;
+				break;
+		}
+
+		return pos;
 	};
 
 	useEffect(() => {
@@ -134,13 +167,15 @@ export const ContextMenu: React.FC<{
 	show?: boolean;
 	onClosed?: () => void;
 	reference?: HTMLElement | null;
-	position?: "top" | "bottom" | "left" | "right" | "center";
-}> = ({ items, show, onClosed, reference, position = "bottom" }) => {
+	anchorOrigin?: position;
+	transformOrigin?: position;
+}> = ({ items, show, onClosed, reference, anchorOrigin, transformOrigin }) => {
 	return (
 		<Portal
 			show={show}
 			reference={reference}
-			position={position}
+			anchorOrigin={anchorOrigin}
+			transformOrigin={transformOrigin}
 			onClosed={onClosed}
 		>
 			<List
